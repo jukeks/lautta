@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	RaftService_Healthcheck_FullMethodName   = "/lautta.rpc.raft.v1.RaftService/Healthcheck"
+	RaftService_Heartbeat_FullMethodName     = "/lautta.rpc.raft.v1.RaftService/Heartbeat"
 	RaftService_RequestVote_FullMethodName   = "/lautta.rpc.raft.v1.RaftService/RequestVote"
 	RaftService_AppendEntries_FullMethodName = "/lautta.rpc.raft.v1.RaftService/AppendEntries"
 )
@@ -28,7 +28,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RaftServiceClient interface {
-	Healthcheck(ctx context.Context, in *HealthcheckRequest, opts ...grpc.CallOption) (*HealthcheckResponse, error)
+	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
 	RequestVote(ctx context.Context, in *RequestVoteRequest, opts ...grpc.CallOption) (*RequestVoteResponse, error)
 	AppendEntries(ctx context.Context, in *AppendEntriesRequest, opts ...grpc.CallOption) (*AppendEntriesResponse, error)
 }
@@ -41,9 +41,9 @@ func NewRaftServiceClient(cc grpc.ClientConnInterface) RaftServiceClient {
 	return &raftServiceClient{cc}
 }
 
-func (c *raftServiceClient) Healthcheck(ctx context.Context, in *HealthcheckRequest, opts ...grpc.CallOption) (*HealthcheckResponse, error) {
-	out := new(HealthcheckResponse)
-	err := c.cc.Invoke(ctx, RaftService_Healthcheck_FullMethodName, in, out, opts...)
+func (c *raftServiceClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
+	out := new(HeartbeatResponse)
+	err := c.cc.Invoke(ctx, RaftService_Heartbeat_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (c *raftServiceClient) AppendEntries(ctx context.Context, in *AppendEntries
 // All implementations must embed UnimplementedRaftServiceServer
 // for forward compatibility
 type RaftServiceServer interface {
-	Healthcheck(context.Context, *HealthcheckRequest) (*HealthcheckResponse, error)
+	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
 	RequestVote(context.Context, *RequestVoteRequest) (*RequestVoteResponse, error)
 	AppendEntries(context.Context, *AppendEntriesRequest) (*AppendEntriesResponse, error)
 	mustEmbedUnimplementedRaftServiceServer()
@@ -82,8 +82,8 @@ type RaftServiceServer interface {
 type UnimplementedRaftServiceServer struct {
 }
 
-func (UnimplementedRaftServiceServer) Healthcheck(context.Context, *HealthcheckRequest) (*HealthcheckResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Healthcheck not implemented")
+func (UnimplementedRaftServiceServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
 }
 func (UnimplementedRaftServiceServer) RequestVote(context.Context, *RequestVoteRequest) (*RequestVoteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestVote not implemented")
@@ -104,20 +104,20 @@ func RegisterRaftServiceServer(s grpc.ServiceRegistrar, srv RaftServiceServer) {
 	s.RegisterService(&RaftService_ServiceDesc, srv)
 }
 
-func _RaftService_Healthcheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HealthcheckRequest)
+func _RaftService_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HeartbeatRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RaftServiceServer).Healthcheck(ctx, in)
+		return srv.(RaftServiceServer).Heartbeat(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RaftService_Healthcheck_FullMethodName,
+		FullMethod: RaftService_Heartbeat_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RaftServiceServer).Healthcheck(ctx, req.(*HealthcheckRequest))
+		return srv.(RaftServiceServer).Heartbeat(ctx, req.(*HeartbeatRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -166,8 +166,8 @@ var RaftService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*RaftServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Healthcheck",
-			Handler:    _RaftService_Healthcheck_Handler,
+			MethodName: "Heartbeat",
+			Handler:    _RaftService_Heartbeat_Handler,
 		},
 		{
 			MethodName: "RequestVote",

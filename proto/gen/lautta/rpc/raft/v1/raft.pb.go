@@ -21,26 +21,26 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type HealthcheckRequest struct {
+type HeartbeatRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *HealthcheckRequest) Reset() {
-	*x = HealthcheckRequest{}
+func (x *HeartbeatRequest) Reset() {
+	*x = HeartbeatRequest{}
 	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *HealthcheckRequest) String() string {
+func (x *HeartbeatRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*HealthcheckRequest) ProtoMessage() {}
+func (*HeartbeatRequest) ProtoMessage() {}
 
-func (x *HealthcheckRequest) ProtoReflect() protoreflect.Message {
+func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -52,31 +52,31 @@ func (x *HealthcheckRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use HealthcheckRequest.ProtoReflect.Descriptor instead.
-func (*HealthcheckRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
+func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
 	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{0}
 }
 
-type HealthcheckResponse struct {
+type HeartbeatResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *HealthcheckResponse) Reset() {
-	*x = HealthcheckResponse{}
+func (x *HeartbeatResponse) Reset() {
+	*x = HeartbeatResponse{}
 	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *HealthcheckResponse) String() string {
+func (x *HeartbeatResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*HealthcheckResponse) ProtoMessage() {}
+func (*HeartbeatResponse) ProtoMessage() {}
 
-func (x *HealthcheckResponse) ProtoReflect() protoreflect.Message {
+func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -88,15 +88,15 @@ func (x *HealthcheckResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use HealthcheckResponse.ProtoReflect.Descriptor instead.
-func (*HealthcheckResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
+func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
 	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{1}
 }
 
 type RequestVoteRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Term          string                 `protobuf:"bytes,1,opt,name=term,proto3" json:"term,omitempty"`
-	CandidateId   string                 `protobuf:"bytes,2,opt,name=candidate_id,json=candidateId,proto3" json:"candidate_id,omitempty"`
+	Term          int64                  `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
+	CandidateId   int64                  `protobuf:"varint,2,opt,name=candidate_id,json=candidateId,proto3" json:"candidate_id,omitempty"`
 	LastLogIndex  int64                  `protobuf:"varint,3,opt,name=last_log_index,json=lastLogIndex,proto3" json:"last_log_index,omitempty"`
 	LastLogTerm   int64                  `protobuf:"varint,4,opt,name=last_log_term,json=lastLogTerm,proto3" json:"last_log_term,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -133,18 +133,18 @@ func (*RequestVoteRequest) Descriptor() ([]byte, []int) {
 	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *RequestVoteRequest) GetTerm() string {
+func (x *RequestVoteRequest) GetTerm() int64 {
 	if x != nil {
 		return x.Term
 	}
-	return ""
+	return 0
 }
 
-func (x *RequestVoteRequest) GetCandidateId() string {
+func (x *RequestVoteRequest) GetCandidateId() int64 {
 	if x != nil {
 		return x.CandidateId
 	}
-	return ""
+	return 0
 }
 
 func (x *RequestVoteRequest) GetLastLogIndex() int64 {
@@ -163,7 +163,7 @@ func (x *RequestVoteRequest) GetLastLogTerm() int64 {
 
 type RequestVoteResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Term          string                 `protobuf:"bytes,1,opt,name=term,proto3" json:"term,omitempty"`
+	Term          int64                  `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
 	VoteGranted   bool                   `protobuf:"varint,2,opt,name=vote_granted,json=voteGranted,proto3" json:"vote_granted,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -199,11 +199,11 @@ func (*RequestVoteResponse) Descriptor() ([]byte, []int) {
 	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *RequestVoteResponse) GetTerm() string {
+func (x *RequestVoteResponse) GetTerm() int64 {
 	if x != nil {
 		return x.Term
 	}
-	return ""
+	return 0
 }
 
 func (x *RequestVoteResponse) GetVoteGranted() bool {
@@ -215,8 +215,8 @@ func (x *RequestVoteResponse) GetVoteGranted() bool {
 
 type AppendEntriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Term          string                 `protobuf:"bytes,1,opt,name=term,proto3" json:"term,omitempty"`
-	LeaderId      string                 `protobuf:"bytes,2,opt,name=leader_id,json=leaderId,proto3" json:"leader_id,omitempty"`
+	Term          int64                  `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
+	LeaderId      int64                  `protobuf:"varint,2,opt,name=leader_id,json=leaderId,proto3" json:"leader_id,omitempty"`
 	PrevLogIndex  int64                  `protobuf:"varint,3,opt,name=prev_log_index,json=prevLogIndex,proto3" json:"prev_log_index,omitempty"`
 	PrevLogTerm   int64                  `protobuf:"varint,4,opt,name=prev_log_term,json=prevLogTerm,proto3" json:"prev_log_term,omitempty"`
 	Entries       []*Entry               `protobuf:"bytes,5,rep,name=entries,proto3" json:"entries,omitempty"`
@@ -255,18 +255,18 @@ func (*AppendEntriesRequest) Descriptor() ([]byte, []int) {
 	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *AppendEntriesRequest) GetTerm() string {
+func (x *AppendEntriesRequest) GetTerm() int64 {
 	if x != nil {
 		return x.Term
 	}
-	return ""
+	return 0
 }
 
-func (x *AppendEntriesRequest) GetLeaderId() string {
+func (x *AppendEntriesRequest) GetLeaderId() int64 {
 	if x != nil {
 		return x.LeaderId
 	}
-	return ""
+	return 0
 }
 
 func (x *AppendEntriesRequest) GetPrevLogIndex() int64 {
@@ -299,7 +299,7 @@ func (x *AppendEntriesRequest) GetLeaderCommit() int64 {
 
 type AppendEntriesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Term          string                 `protobuf:"bytes,1,opt,name=term,proto3" json:"term,omitempty"`
+	Term          int64                  `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
 	Success       bool                   `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -335,11 +335,11 @@ func (*AppendEntriesResponse) Descriptor() ([]byte, []int) {
 	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *AppendEntriesResponse) GetTerm() string {
+func (x *AppendEntriesResponse) GetTerm() int64 {
 	if x != nil {
 		return x.Term
 	}
-	return ""
+	return 0
 }
 
 func (x *AppendEntriesResponse) GetSuccess() bool {
@@ -389,30 +389,30 @@ var File_lautta_rpc_raft_v1_raft_proto protoreflect.FileDescriptor
 
 const file_lautta_rpc_raft_v1_raft_proto_rawDesc = "" +
 	"\n" +
-	"\x1dlautta/rpc/raft/v1/raft.proto\x12\x12lautta.rpc.raft.v1\"\x14\n" +
-	"\x12HealthcheckRequest\"\x15\n" +
-	"\x13HealthcheckResponse\"\x95\x01\n" +
+	"\x1dlautta/rpc/raft/v1/raft.proto\x12\x12lautta.rpc.raft.v1\"\x12\n" +
+	"\x10HeartbeatRequest\"\x13\n" +
+	"\x11HeartbeatResponse\"\x95\x01\n" +
 	"\x12RequestVoteRequest\x12\x12\n" +
-	"\x04term\x18\x01 \x01(\tR\x04term\x12!\n" +
-	"\fcandidate_id\x18\x02 \x01(\tR\vcandidateId\x12$\n" +
+	"\x04term\x18\x01 \x01(\x03R\x04term\x12!\n" +
+	"\fcandidate_id\x18\x02 \x01(\x03R\vcandidateId\x12$\n" +
 	"\x0elast_log_index\x18\x03 \x01(\x03R\flastLogIndex\x12\"\n" +
 	"\rlast_log_term\x18\x04 \x01(\x03R\vlastLogTerm\"L\n" +
 	"\x13RequestVoteResponse\x12\x12\n" +
-	"\x04term\x18\x01 \x01(\tR\x04term\x12!\n" +
+	"\x04term\x18\x01 \x01(\x03R\x04term\x12!\n" +
 	"\fvote_granted\x18\x02 \x01(\bR\vvoteGranted\"\xeb\x01\n" +
 	"\x14AppendEntriesRequest\x12\x12\n" +
-	"\x04term\x18\x01 \x01(\tR\x04term\x12\x1b\n" +
-	"\tleader_id\x18\x02 \x01(\tR\bleaderId\x12$\n" +
+	"\x04term\x18\x01 \x01(\x03R\x04term\x12\x1b\n" +
+	"\tleader_id\x18\x02 \x01(\x03R\bleaderId\x12$\n" +
 	"\x0eprev_log_index\x18\x03 \x01(\x03R\fprevLogIndex\x12\"\n" +
 	"\rprev_log_term\x18\x04 \x01(\x03R\vprevLogTerm\x123\n" +
 	"\aentries\x18\x05 \x03(\v2\x19.lautta.rpc.raft.v1.EntryR\aentries\x12#\n" +
 	"\rleader_commit\x18\x06 \x01(\x03R\fleaderCommit\"E\n" +
 	"\x15AppendEntriesResponse\x12\x12\n" +
-	"\x04term\x18\x01 \x01(\tR\x04term\x12\x18\n" +
+	"\x04term\x18\x01 \x01(\x03R\x04term\x12\x18\n" +
 	"\asuccess\x18\x02 \x01(\bR\asuccess\"\a\n" +
-	"\x05Entry2\xb3\x02\n" +
-	"\vRaftService\x12^\n" +
-	"\vHealthcheck\x12&.lautta.rpc.raft.v1.HealthcheckRequest\x1a'.lautta.rpc.raft.v1.HealthcheckResponse\x12^\n" +
+	"\x05Entry2\xad\x02\n" +
+	"\vRaftService\x12X\n" +
+	"\tHeartbeat\x12$.lautta.rpc.raft.v1.HeartbeatRequest\x1a%.lautta.rpc.raft.v1.HeartbeatResponse\x12^\n" +
 	"\vRequestVote\x12&.lautta.rpc.raft.v1.RequestVoteRequest\x1a'.lautta.rpc.raft.v1.RequestVoteResponse\x12d\n" +
 	"\rAppendEntries\x12(.lautta.rpc.raft.v1.AppendEntriesRequest\x1a).lautta.rpc.raft.v1.AppendEntriesResponseB\xc8\x01\n" +
 	"\x16com.lautta.rpc.raft.v1B\tRaftProtoP\x01Z8github.com/jukeks/lautta/proto/lautta/rpc/raft/v1;raftv1\xa2\x02\x03LRR\xaa\x02\x12Lautta.Rpc.Raft.V1\xca\x02\x12Lautta\\Rpc\\Raft\\V1\xe2\x02\x1eLautta\\Rpc\\Raft\\V1\\GPBMetadata\xea\x02\x15Lautta::Rpc::Raft::V1b\x06proto3"
@@ -431,8 +431,8 @@ func file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP() []byte {
 
 var file_lautta_rpc_raft_v1_raft_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_lautta_rpc_raft_v1_raft_proto_goTypes = []any{
-	(*HealthcheckRequest)(nil),    // 0: lautta.rpc.raft.v1.HealthcheckRequest
-	(*HealthcheckResponse)(nil),   // 1: lautta.rpc.raft.v1.HealthcheckResponse
+	(*HeartbeatRequest)(nil),      // 0: lautta.rpc.raft.v1.HeartbeatRequest
+	(*HeartbeatResponse)(nil),     // 1: lautta.rpc.raft.v1.HeartbeatResponse
 	(*RequestVoteRequest)(nil),    // 2: lautta.rpc.raft.v1.RequestVoteRequest
 	(*RequestVoteResponse)(nil),   // 3: lautta.rpc.raft.v1.RequestVoteResponse
 	(*AppendEntriesRequest)(nil),  // 4: lautta.rpc.raft.v1.AppendEntriesRequest
@@ -441,10 +441,10 @@ var file_lautta_rpc_raft_v1_raft_proto_goTypes = []any{
 }
 var file_lautta_rpc_raft_v1_raft_proto_depIdxs = []int32{
 	6, // 0: lautta.rpc.raft.v1.AppendEntriesRequest.entries:type_name -> lautta.rpc.raft.v1.Entry
-	0, // 1: lautta.rpc.raft.v1.RaftService.Healthcheck:input_type -> lautta.rpc.raft.v1.HealthcheckRequest
+	0, // 1: lautta.rpc.raft.v1.RaftService.Heartbeat:input_type -> lautta.rpc.raft.v1.HeartbeatRequest
 	2, // 2: lautta.rpc.raft.v1.RaftService.RequestVote:input_type -> lautta.rpc.raft.v1.RequestVoteRequest
 	4, // 3: lautta.rpc.raft.v1.RaftService.AppendEntries:input_type -> lautta.rpc.raft.v1.AppendEntriesRequest
-	1, // 4: lautta.rpc.raft.v1.RaftService.Healthcheck:output_type -> lautta.rpc.raft.v1.HealthcheckResponse
+	1, // 4: lautta.rpc.raft.v1.RaftService.Heartbeat:output_type -> lautta.rpc.raft.v1.HeartbeatResponse
 	3, // 5: lautta.rpc.raft.v1.RaftService.RequestVote:output_type -> lautta.rpc.raft.v1.RequestVoteResponse
 	5, // 6: lautta.rpc.raft.v1.RaftService.AppendEntries:output_type -> lautta.rpc.raft.v1.AppendEntriesResponse
 	4, // [4:7] is the sub-list for method output_type

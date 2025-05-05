@@ -12,6 +12,8 @@ type Peer struct {
 }
 
 type Node struct {
+	ID NodeID
+
 	// persisted
 	CurrentTerm TermID
 	VotedFor    *NodeID
@@ -25,8 +27,11 @@ type Node struct {
 
 	peers []Peer
 
-	appendEntries chan AppendEntriesRequest
-	voteRequests  chan RequestVoteRequest
+	AppendEntries chan AppendEntriesRequest
+	VoteRequests  chan RequestVoteRequest
+	Heartbeats    chan HeartbeatRequest
+	Quit          chan bool
+	Done          chan bool
 
 	logger *log.Logger
 }
@@ -47,8 +52,11 @@ func NewNode() *Node {
 
 		Leader: nil,
 
-		appendEntries: make(chan AppendEntriesRequest, 10),
-		voteRequests:  make(chan RequestVoteRequest, 10),
+		AppendEntries: make(chan AppendEntriesRequest, 10),
+		VoteRequests:  make(chan RequestVoteRequest, 10),
+		Heartbeats:    make(chan HeartbeatRequest, 10),
+		Quit:          make(chan bool, 1),
+		Done:          make(chan bool, 1),
 
 		logger: log.Default(),
 	}
@@ -62,13 +70,32 @@ func (n *Node) StoreState() error {
 	return nil
 }
 
+func (n *Node) Stop() {
+	n.Quit <- true
+	<-n.Done
+}
+
 func (n *Node) Run() {
+loop:
 	for {
 		select {
-		case appendEntries := <-n.appendEntries:
-			n.logger.Printf("append entries: %v", appendEntries)
-		case voteRequest := <-n.voteRequests:
-			n.logger.Printf("vote request: %v", voteRequest)
+		case appendEntries := <-n.AppendEntries:
+			n.logger.Printf("append entries: %+v", appendEntries)
+			appendEntries.Ret <- AppendEntriesResponse{}
+
+		case voteRequest := <-n.VoteRequests:
+			n.logger.Printf("vote request: %+v", voteRequest)
+			voteRequest.Ret <- RequestVoteResponse{}
+
+		case heartbeat := <-n.Heartbeats:
+			n.logger.Printf("heartbeat: %+v", heartbeat)
+			heartbeat.Ret <- HeartbeatResponse{NodeID: n.ID}
+
+		case <-n.Quit:
+			n.logger.Println("quitting")
+			break loop
 		}
 	}
+
+	n.Done <- true
 }

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/jukeks/lautta"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
 	"google.golang.org/grpc"
 )
@@ -15,7 +16,10 @@ var (
 )
 
 func main() {
-	raftServer := NewRaftServer()
+	lauttaNode := lautta.NewNode()
+	go lauttaNode.Run()
+	defer lauttaNode.Stop()
+	raftServer := NewRaftServer(lauttaNode)
 
 	ls, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
 	if err != nil {

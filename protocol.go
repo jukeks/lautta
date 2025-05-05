@@ -10,6 +10,8 @@ type AppendEntriesRequest struct {
 	Entries []LogEntry
 
 	LeaderCommit LogIndex
+
+	Ret chan AppendEntriesResponse
 }
 
 type AppendEntriesResponse struct {
@@ -22,9 +24,20 @@ type RequestVoteRequest struct {
 	CandidateID  NodeID
 	LastLogIndex LogIndex
 	LastLogTerm  TermID
+
+	Ret chan RequestVoteResponse
 }
 
 type RequestVoteResponse struct {
 	Term        TermID
 	VoteGranted bool
+}
+
+type HeartbeatRequest struct {
+	NodeID NodeID
+	Ret    chan HeartbeatResponse
+}
+
+type HeartbeatResponse struct {
+	NodeID NodeID
 }
