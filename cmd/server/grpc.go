@@ -21,21 +21,10 @@ func NewRaftServer(node *lautta.Node) *RaftServer {
 	}
 }
 
-func (s *RaftServer) Heartbeat(ctx context.Context, req *raftv1.HeartbeatRequest) (*raftv1.HeartbeatResponse, error) {
-	s.logger.Println("Heartbeat called")
-	ret := make(chan lautta.HeartbeatResponse, 1)
-	s.node.Heartbeats <- lautta.HeartbeatRequest{
-		NodeID: lautta.NodeID(0),
-		Ret:    ret,
-	}
-	<-ret
-	return &raftv1.HeartbeatResponse{}, nil
-}
-
 func (s *RaftServer) AppendEntries(ctx context.Context, req *raftv1.AppendEntriesRequest) (*raftv1.AppendEntriesResponse, error) {
 	s.logger.Println("AppendEntries called")
 	ret := make(chan lautta.AppendEntriesResponse, 1)
-	s.node.AppendEntries <- lautta.AppendEntriesRequest{
+	s.node.AppendEntriesRequests <- lautta.AppendEntriesRequest{
 		Term:         lautta.TermID(req.Term),
 		LeaderID:     lautta.NodeID(req.LeaderId),
 		PrevLogIndex: lautta.LogIndex(req.PrevLogIndex),
@@ -65,6 +54,7 @@ func (s *RaftServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteReq
 	}
 
 	resp := <-ret
+	s.logger.Printf("request vote resp received")
 	return &raftv1.RequestVoteResponse{
 		Term:        int64(resp.Term),
 		VoteGranted: resp.VoteGranted,

@@ -32,12 +32,3 @@ type RequestVoteResponse struct {
 	Term        TermID
 	VoteGranted bool
 }
-
-type HeartbeatRequest struct {
-	NodeID NodeID
-	Ret    chan HeartbeatResponse
-}
-
-type HeartbeatResponse struct {
-	NodeID NodeID
-}

@@ -21,78 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type HeartbeatRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *HeartbeatRequest) Reset() {
-	*x = HeartbeatRequest{}
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *HeartbeatRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HeartbeatRequest) ProtoMessage() {}
-
-func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
-func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{0}
-}
-
-type HeartbeatResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *HeartbeatResponse) Reset() {
-	*x = HeartbeatResponse{}
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *HeartbeatResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HeartbeatResponse) ProtoMessage() {}
-
-func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
-func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{1}
-}
-
 type RequestVoteRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Term          int64                  `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
@@ -105,7 +33,7 @@ type RequestVoteRequest struct {
 
 func (x *RequestVoteRequest) Reset() {
 	*x = RequestVoteRequest{}
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[2]
+	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -117,7 +45,7 @@ func (x *RequestVoteRequest) String() string {
 func (*RequestVoteRequest) ProtoMessage() {}
 
 func (x *RequestVoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[2]
+	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -130,7 +58,7 @@ func (x *RequestVoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestVoteRequest.ProtoReflect.Descriptor instead.
 func (*RequestVoteRequest) Descriptor() ([]byte, []int) {
-	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{2}
+	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *RequestVoteRequest) GetTerm() int64 {
@@ -171,7 +99,7 @@ type RequestVoteResponse struct {
 
 func (x *RequestVoteResponse) Reset() {
 	*x = RequestVoteResponse{}
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[3]
+	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -183,7 +111,7 @@ func (x *RequestVoteResponse) String() string {
 func (*RequestVoteResponse) ProtoMessage() {}
 
 func (x *RequestVoteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[3]
+	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -196,7 +124,7 @@ func (x *RequestVoteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestVoteResponse.ProtoReflect.Descriptor instead.
 func (*RequestVoteResponse) Descriptor() ([]byte, []int) {
-	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{3}
+	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *RequestVoteResponse) GetTerm() int64 {
@@ -227,7 +155,7 @@ type AppendEntriesRequest struct {
 
 func (x *AppendEntriesRequest) Reset() {
 	*x = AppendEntriesRequest{}
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[4]
+	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -239,7 +167,7 @@ func (x *AppendEntriesRequest) String() string {
 func (*AppendEntriesRequest) ProtoMessage() {}
 
 func (x *AppendEntriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[4]
+	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -252,7 +180,7 @@ func (x *AppendEntriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendEntriesRequest.ProtoReflect.Descriptor instead.
 func (*AppendEntriesRequest) Descriptor() ([]byte, []int) {
-	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{4}
+	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AppendEntriesRequest) GetTerm() int64 {
@@ -307,7 +235,7 @@ type AppendEntriesResponse struct {
 
 func (x *AppendEntriesResponse) Reset() {
 	*x = AppendEntriesResponse{}
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[5]
+	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -319,7 +247,7 @@ func (x *AppendEntriesResponse) String() string {
 func (*AppendEntriesResponse) ProtoMessage() {}
 
 func (x *AppendEntriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[5]
+	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -332,7 +260,7 @@ func (x *AppendEntriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendEntriesResponse.ProtoReflect.Descriptor instead.
 func (*AppendEntriesResponse) Descriptor() ([]byte, []int) {
-	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{5}
+	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AppendEntriesResponse) GetTerm() int64 {
@@ -357,7 +285,7 @@ type Entry struct {
 
 func (x *Entry) Reset() {
 	*x = Entry{}
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[6]
+	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +297,7 @@ func (x *Entry) String() string {
 func (*Entry) ProtoMessage() {}
 
 func (x *Entry) ProtoReflect() protoreflect.Message {
-	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[6]
+	mi := &file_lautta_rpc_raft_v1_raft_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,16 +310,14 @@ func (x *Entry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Entry.ProtoReflect.Descriptor instead.
 func (*Entry) Descriptor() ([]byte, []int) {
-	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{6}
+	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{4}
 }
 
 var File_lautta_rpc_raft_v1_raft_proto protoreflect.FileDescriptor
 
 const file_lautta_rpc_raft_v1_raft_proto_rawDesc = "" +
 	"\n" +
-	"\x1dlautta/rpc/raft/v1/raft.proto\x12\x12lautta.rpc.raft.v1\"\x12\n" +
-	"\x10HeartbeatRequest\"\x13\n" +
-	"\x11HeartbeatResponse\"\x95\x01\n" +
+	"\x1dlautta/rpc/raft/v1/raft.proto\x12\x12lautta.rpc.raft.v1\"\x95\x01\n" +
 	"\x12RequestVoteRequest\x12\x12\n" +
 	"\x04term\x18\x01 \x01(\x03R\x04term\x12!\n" +
 	"\fcandidate_id\x18\x02 \x01(\x03R\vcandidateId\x12$\n" +
@@ -410,9 +336,8 @@ const file_lautta_rpc_raft_v1_raft_proto_rawDesc = "" +
 	"\x15AppendEntriesResponse\x12\x12\n" +
 	"\x04term\x18\x01 \x01(\x03R\x04term\x12\x18\n" +
 	"\asuccess\x18\x02 \x01(\bR\asuccess\"\a\n" +
-	"\x05Entry2\xad\x02\n" +
-	"\vRaftService\x12X\n" +
-	"\tHeartbeat\x12$.lautta.rpc.raft.v1.HeartbeatRequest\x1a%.lautta.rpc.raft.v1.HeartbeatResponse\x12^\n" +
+	"\x05Entry2\xd3\x01\n" +
+	"\vRaftService\x12^\n" +
 	"\vRequestVote\x12&.lautta.rpc.raft.v1.RequestVoteRequest\x1a'.lautta.rpc.raft.v1.RequestVoteResponse\x12d\n" +
 	"\rAppendEntries\x12(.lautta.rpc.raft.v1.AppendEntriesRequest\x1a).lautta.rpc.raft.v1.AppendEntriesResponseB\xc8\x01\n" +
 	"\x16com.lautta.rpc.raft.v1B\tRaftProtoP\x01Z8github.com/jukeks/lautta/proto/lautta/rpc/raft/v1;raftv1\xa2\x02\x03LRR\xaa\x02\x12Lautta.Rpc.Raft.V1\xca\x02\x12Lautta\\Rpc\\Raft\\V1\xe2\x02\x1eLautta\\Rpc\\Raft\\V1\\GPBMetadata\xea\x02\x15Lautta::Rpc::Raft::V1b\x06proto3"
@@ -429,26 +354,22 @@ func file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP() []byte {
 	return file_lautta_rpc_raft_v1_raft_proto_rawDescData
 }
 
-var file_lautta_rpc_raft_v1_raft_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_lautta_rpc_raft_v1_raft_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_lautta_rpc_raft_v1_raft_proto_goTypes = []any{
-	(*HeartbeatRequest)(nil),      // 0: lautta.rpc.raft.v1.HeartbeatRequest
-	(*HeartbeatResponse)(nil),     // 1: lautta.rpc.raft.v1.HeartbeatResponse
-	(*RequestVoteRequest)(nil),    // 2: lautta.rpc.raft.v1.RequestVoteRequest
-	(*RequestVoteResponse)(nil),   // 3: lautta.rpc.raft.v1.RequestVoteResponse
-	(*AppendEntriesRequest)(nil),  // 4: lautta.rpc.raft.v1.AppendEntriesRequest
-	(*AppendEntriesResponse)(nil), // 5: lautta.rpc.raft.v1.AppendEntriesResponse
-	(*Entry)(nil),                 // 6: lautta.rpc.raft.v1.Entry
+	(*RequestVoteRequest)(nil),    // 0: lautta.rpc.raft.v1.RequestVoteRequest
+	(*RequestVoteResponse)(nil),   // 1: lautta.rpc.raft.v1.RequestVoteResponse
+	(*AppendEntriesRequest)(nil),  // 2: lautta.rpc.raft.v1.AppendEntriesRequest
+	(*AppendEntriesResponse)(nil), // 3: lautta.rpc.raft.v1.AppendEntriesResponse
+	(*Entry)(nil),                 // 4: lautta.rpc.raft.v1.Entry
 }
 var file_lautta_rpc_raft_v1_raft_proto_depIdxs = []int32{
-	6, // 0: lautta.rpc.raft.v1.AppendEntriesRequest.entries:type_name -> lautta.rpc.raft.v1.Entry
-	0, // 1: lautta.rpc.raft.v1.RaftService.Heartbeat:input_type -> lautta.rpc.raft.v1.HeartbeatRequest
-	2, // 2: lautta.rpc.raft.v1.RaftService.RequestVote:input_type -> lautta.rpc.raft.v1.RequestVoteRequest
-	4, // 3: lautta.rpc.raft.v1.RaftService.AppendEntries:input_type -> lautta.rpc.raft.v1.AppendEntriesRequest
-	1, // 4: lautta.rpc.raft.v1.RaftService.Heartbeat:output_type -> lautta.rpc.raft.v1.HeartbeatResponse
-	3, // 5: lautta.rpc.raft.v1.RaftService.RequestVote:output_type -> lautta.rpc.raft.v1.RequestVoteResponse
-	5, // 6: lautta.rpc.raft.v1.RaftService.AppendEntries:output_type -> lautta.rpc.raft.v1.AppendEntriesResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
+	4, // 0: lautta.rpc.raft.v1.AppendEntriesRequest.entries:type_name -> lautta.rpc.raft.v1.Entry
+	0, // 1: lautta.rpc.raft.v1.RaftService.RequestVote:input_type -> lautta.rpc.raft.v1.RequestVoteRequest
+	2, // 2: lautta.rpc.raft.v1.RaftService.AppendEntries:input_type -> lautta.rpc.raft.v1.AppendEntriesRequest
+	1, // 3: lautta.rpc.raft.v1.RaftService.RequestVote:output_type -> lautta.rpc.raft.v1.RequestVoteResponse
+	3, // 4: lautta.rpc.raft.v1.RaftService.AppendEntries:output_type -> lautta.rpc.raft.v1.AppendEntriesResponse
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -465,7 +386,7 @@ func file_lautta_rpc_raft_v1_raft_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_lautta_rpc_raft_v1_raft_proto_rawDesc), len(file_lautta_rpc_raft_v1_raft_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
