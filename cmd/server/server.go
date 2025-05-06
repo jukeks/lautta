@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 
@@ -15,11 +16,13 @@ import (
 
 var (
 	config = flag.String("config", "", "config")
+
+	logger = log.New(os.Stderr, "[server] ", log.Lmicroseconds)
 )
 
 func parseConfig() lautta.Config {
 	if *config == "" {
-		log.Fatal("config is required")
+		logger.Fatal("config is required")
 	}
 
 	nodes := strings.Split(*config, ",")
@@ -27,12 +30,12 @@ func parseConfig() lautta.Config {
 	for i, node := range nodes {
 		components := strings.Split(node, "=")
 		if len(components) != 2 {
-			log.Fatalf("invalid node format: %s", node)
+			logger.Fatalf("invalid node format: %s", node)
 		}
 		id_raw := components[0]
 		id, err := strconv.ParseInt(id_raw, 10, 64)
 		if err != nil {
-			log.Fatalf("invalid node id: %s", id_raw)
+			logger.Fatalf("invalid node id: %s", id_raw)
 		}
 		address := components[1]
 		peers[i] = lautta.Peer{
@@ -61,7 +64,7 @@ func main() {
 
 	ls, err := net.Listen("tcp", fmt.Sprintf(cfg.Address))
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		logger.Fatalf("failed to listen: %v", err)
 	}
 
 	grpcServer := grpc.NewServer()

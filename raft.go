@@ -3,6 +3,8 @@ package lautta
 import (
 	"context"
 	"log"
+	"math/rand"
+	"os"
 	"time"
 
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
@@ -104,7 +106,7 @@ func NewNode(config Config) *Node {
 		Quit:                   make(chan bool, 1),
 		Done:                   make(chan bool, 1),
 
-		logger: log.Default(),
+		logger: log.New(os.Stderr, "[raft] ", log.Lmicroseconds),
 	}
 }
 
@@ -156,7 +158,7 @@ loop:
 				n.sendHeartbeats(peerClients)
 			}
 			if n.State == Candidate && time.Since(n.LastElection) > ElectionTimeout {
-				n.logger.Println("Ending elections")
+				n.logger.Println("Ending elections with timeout")
 				n.handleVoteResults(peerClients)
 			}
 
@@ -276,6 +278,7 @@ func (n *Node) handleVoteResults(peers map[NodeID]raftv1.RaftServiceClient) {
 	} else {
 		n.logger.Printf("lost elections")
 		n.State = Follower
+		n.LastHeartbeat = time.Now().Add(time.Duration(rand.Int63n(int64(HeartbeatTimeout))))
 	}
 }
 

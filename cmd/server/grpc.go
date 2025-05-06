@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/jukeks/lautta"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
@@ -16,7 +17,7 @@ type RaftServer struct {
 
 func NewRaftServer(node *lautta.Node) *RaftServer {
 	return &RaftServer{
-		logger: log.Default(),
+		logger: log.New(os.Stderr, "[grpc] ", log.Lmicroseconds),
 		node:   node,
 	}
 }
