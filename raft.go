@@ -157,7 +157,7 @@ loop:
 			}
 			if n.State == Candidate && time.Since(n.LastElection) > ElectionTimeout {
 				n.logger.Println("Ending elections")
-				n.voteResults(peerClients)
+				n.handleVoteResults(peerClients)
 			}
 
 		case appendEntryReq := <-n.AppendEntriesRequests:
@@ -216,7 +216,7 @@ loop:
 
 			if n.voteResponsesReceived == len(n.config.Peers) {
 				n.logger.Printf("got all vote responses")
-				n.voteResults(peerClients)
+				n.handleVoteResults(peerClients)
 			}
 
 		case <-n.Quit:
@@ -255,7 +255,7 @@ func (n *Node) runElection(peers map[NodeID]raftv1.RaftServiceClient) {
 	}
 }
 
-func (n *Node) voteResults(peers map[NodeID]raftv1.RaftServiceClient) {
+func (n *Node) handleVoteResults(peers map[NodeID]raftv1.RaftServiceClient) {
 	nNodes := len(n.config.Peers) + 1
 	if n.votes >= (nNodes/2)+1 {
 		n.logger.Printf("node %d won election", n.config.ID)
@@ -273,6 +273,9 @@ func (n *Node) voteResults(peers map[NodeID]raftv1.RaftServiceClient) {
 		}
 
 		n.sendHeartbeats(peers)
+	} else {
+		n.logger.Printf("lost elections")
+		n.State = Follower
 	}
 }
 
