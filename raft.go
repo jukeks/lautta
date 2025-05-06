@@ -51,7 +51,10 @@ type Node struct {
 	CommitIndex LogIndex
 	LastApplied LogIndex
 
-	LastHeartbeat time.Time
+	LastHeartbeat         time.Time
+	LastElection          time.Time
+	votes                 int
+	voteResponsesReceived int
 
 	State NodeState
 
@@ -73,8 +76,9 @@ type LeaderState struct {
 }
 
 const (
-	Tick            = 1000 * time.Millisecond
-	ElectionTimeout = 5 * time.Second
+	Tick             = 1000 * time.Millisecond
+	HeartbeatTimeout = 5 * time.Second
+	ElectionTimeout  = 1 * time.Second
 )
 
 func NewNode(config Config) *Node {
@@ -144,12 +148,16 @@ loop:
 	for {
 		select {
 		case <-time.After(Tick):
-			if n.State == Follower && time.Since(n.LastHeartbeat) > ElectionTimeout {
+			if n.State == Follower && time.Since(n.LastHeartbeat) > HeartbeatTimeout {
 				n.logger.Println("starting elections")
 				n.runElection(peerClients)
 			}
 			if n.State == Leader {
 				n.sendHeartbeats(peerClients)
+			}
+			if n.State == Candidate && time.Since(n.LastElection) > ElectionTimeout {
+				n.logger.Println("Ending elections")
+				n.voteResults(peerClients)
 			}
 
 		case appendEntryReq := <-n.AppendEntriesRequests:
@@ -191,6 +199,26 @@ loop:
 				Term:        n.CurrentTerm,
 				VoteGranted: voteGranted,
 			}
+		case voteResponse := <-n.VoteResponses:
+			n.logger.Printf("vote response: %+v", voteResponse)
+			if n.State != Candidate {
+				n.logger.Printf("got vote response but not a candidate")
+				break
+			}
+			n.voteResponsesReceived += 1
+			if voteResponse.Term > n.CurrentTerm {
+				n.CurrentTerm = voteResponse.Term
+				n.VotedFor = nil
+			}
+			if voteResponse.VoteGranted {
+				n.votes += 1
+			}
+
+			if n.voteResponsesReceived == len(n.config.Peers) {
+				n.logger.Printf("got all vote responses")
+				n.voteResults(peerClients)
+			}
+
 		case <-n.Quit:
 			n.logger.Println("quitting")
 			break loop
@@ -202,28 +230,34 @@ loop:
 
 func (n *Node) runElection(peers map[NodeID]raftv1.RaftServiceClient) {
 	n.State = Candidate
+	n.LastElection = time.Now()
 	n.CurrentTerm++
+	n.votes = 1
+	n.voteResponsesReceived = 0
 
-	votes := 1
 	for _, peer := range peers {
-		resp, err := peer.RequestVote(context.Background(), &raftv1.RequestVoteRequest{
-			Term:         int64(n.CurrentTerm),
-			CandidateId:  int64(n.config.ID),
-			LastLogIndex: int64(n.CommitIndex),
-		})
+		go func() {
+			resp, err := peer.RequestVote(context.Background(), &raftv1.RequestVoteRequest{
+				Term:         int64(n.CurrentTerm),
+				CandidateId:  int64(n.config.ID),
+				LastLogIndex: int64(n.CommitIndex),
+			})
 
-		if err != nil {
-			n.logger.Printf("error requesting vote: %v", err)
-			continue
-		}
-
-		if resp.VoteGranted {
-			votes += 1
-		}
+			if err != nil {
+				n.logger.Printf("error requesting vote: %v", err)
+				return
+			}
+			n.VoteResponses <- RequestVoteResponse{
+				Term:        TermID(resp.Term),
+				VoteGranted: resp.VoteGranted,
+			}
+		}()
 	}
+}
 
-	nNodes := len(peers) + 1
-	if votes > (nNodes/2)+1 {
+func (n *Node) voteResults(peers map[NodeID]raftv1.RaftServiceClient) {
+	nNodes := len(n.config.Peers) + 1
+	if n.votes >= (nNodes/2)+1 {
 		n.logger.Printf("node %d won election", n.config.ID)
 		n.State = Leader
 
@@ -256,7 +290,7 @@ func (n *Node) sendHeartbeats(peers map[NodeID]raftv1.RaftServiceClient) {
 
 			if err != nil {
 				n.logger.Printf("error heartbeating: %v", err)
-
+				return
 			}
 			n.AppendEntriesResponses <- AppendEntriesResponse{
 				Term:    TermID(resp.Term),
