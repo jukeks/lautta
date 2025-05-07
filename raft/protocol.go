@@ -18,6 +18,9 @@ type AppendEntriesRequest struct {
 type AppendEntriesResponse struct {
 	Term    TermID
 	Success bool
+
+	// for matching logic
+	Request AppendEntriesRequest
 }
 
 type RequestVoteRequest struct {
@@ -41,7 +44,9 @@ type ProposeRequest struct {
 	Ret chan ProposeResponse
 }
 
-type ProposeResponse struct{}
+type ProposeResponse struct {
+	Err error
+}
 
 type Comms struct {
 	// messages to node

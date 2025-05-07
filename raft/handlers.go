@@ -1,6 +1,7 @@
 package lautta
 
 import (
+	"errors"
 	"math/rand"
 	"time"
 )
@@ -29,20 +30,21 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 	}
 
 	olderTerm := req.Term < n.CurrentTerm
-	prevLog := n.findLog(req.PrevLogIndex)
-	prevLogMismatch := prevLog == nil || prevLog.Term != req.PrevLogTerm
-
 	for _, newEntry := range req.Entries {
-		existingEntry := n.findLog(newEntry.Index)
+		existingEntry := n.getLog(newEntry.Index)
 		if existingEntry != nil {
 			if existingEntry.Term != newEntry.Term {
-				n.deleteAndAfter(newEntry.Index)
+				n.deleteFrom(newEntry.Index)
 				break
 			}
 		} else {
 			n.addEntry(newEntry)
 		}
 	}
+
+	// should this be resolved before or after adding entries?
+	prevLog := n.getLog(req.PrevLogIndex)
+	prevLogMismatch := prevLog == nil || prevLog.Term != req.PrevLogTerm
 
 	if req.LeaderCommit > n.CommitIndex {
 		lastLog := n.getLastLog()
@@ -56,9 +58,85 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 	n.LastHeartbeat = time.Now()
 }
 
+func firstOr[T any](arr []T, _default T) T {
+	if len(arr) == 0 {
+		return _default
+	}
+
+	return arr[0]
+}
+
+func (n *Node) getMajorityCount() int {
+	return len(n.config.Peers)/2 + 1
+}
+
+func (n *Node) getMajorityIndex() LogIndex {
+	majority := n.getMajorityCount()
+	maxIndex := LogIndex(0)
+	for _, indexA := range n.Leader.MatchIndex {
+		atleastHere := 0
+		for _, indexB := range n.Leader.MatchIndex {
+			if indexA <= indexB {
+				atleastHere++
+			}
+		}
+
+		if atleastHere >= majority && indexA > maxIndex {
+			maxIndex = indexA
+		}
+	}
+
+	return maxIndex
+}
+
+func (n *Node) checkCommitProgress() {
+	commitIndex := n.getMajorityIndex()
+	if commitIndex <= n.CommitIndex {
+		return
+	}
+
+	n.logger.Printf("committed %d", commitIndex)
+
+	n.CommitIndex = commitIndex
+	toDelete := []LogIndex{}
+	for idx, req := range n.ongoingOperations {
+		if idx <= commitIndex {
+			req.Ret <- ProposeResponse{}
+			toDelete = append(toDelete, idx)
+		}
+	}
+
+	for _, idx := range toDelete {
+		delete(n.ongoingOperations, idx)
+	}
+}
+
 func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 	n.logger.Printf("append entries resp: %+v", resp)
-	// TODO
+	req := resp.Request
+	peer := req.TargetNode
+
+	if resp.Success {
+		n.Leader.MatchIndex[peer] = req.PrevLogIndex
+		n.Leader.NextIndex[peer] = req.PrevLogIndex + 1
+		n.checkCommitProgress()
+		return
+	}
+
+	// one at a time try how far logs are missing
+	lastLog := n.getLastLog()
+	earliestInLastReq := firstOr(req.Entries, lastLog)
+	entries := n.getFrom(earliestInLastReq.Index - 1)
+
+	n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
+		Term:         n.CurrentTerm,
+		LeaderID:     n.config.ID,
+		PrevLogIndex: lastLog.Index,
+		PrevLogTerm:  lastLog.Term,
+		LeaderCommit: n.CommitIndex,
+		TargetNode:   peer,
+		Entries:      entries,
+	}
 }
 
 func (n *Node) handleVoteRequest(req RequestVoteRequest) {
@@ -169,6 +247,14 @@ func (n *Node) sendHeartbeats() {
 }
 
 func (n *Node) handleProposeRequest(req ProposeRequest) {
+	n.logger.Printf("got write request: %+v. %s", req, req.Payload)
+	if n.State != Leader {
+		req.Ret <- ProposeResponse{
+			Err: errors.New("not a leader"),
+		}
+		return
+	}
+
 	lastLog := n.getLastLog()
 	entry := LogEntry{
 		Term:    n.CurrentTerm,
@@ -176,13 +262,15 @@ func (n *Node) handleProposeRequest(req ProposeRequest) {
 		Payload: req.Payload,
 	}
 	n.addEntry(entry)
+	n.ongoingOperations[entry.Index] = req
+
 	n.replicate()
 }
 
 func (n *Node) replicate() {
 	lastLog := n.getLastLog()
 	for nodeID, nextIndex := range n.Leader.NextIndex {
-		entry := n.findLog(nextIndex)
+		entry := n.getLog(nextIndex)
 		n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
 			Term:         n.CurrentTerm,
 			LeaderID:     n.config.ID,

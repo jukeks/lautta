@@ -93,7 +93,10 @@ func (s *RaftServer) Write(ctx context.Context, req *kvv1.WriteRequest) (*kvv1.W
 		Ret:     ret,
 	}
 
-	<-ret
+	resp := <-ret
 	s.logger.Println("Write response received")
+	if resp.Err != nil {
+		return nil, resp.Err
+	}
 	return &kvv1.WriteResponse{}, nil
 }

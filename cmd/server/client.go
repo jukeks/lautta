@@ -34,12 +34,21 @@ func (c *Client) sendAppendEntriesRequest(node lautta.NodeID, req lautta.AppendE
 	peer := c.peers[node]
 
 	go func() {
+		entries := make([]*raftv1.Entry, len(req.Entries))
+		for i, entry := range req.Entries {
+			entries[i] = &raftv1.Entry{
+				Index:   int64(entry.Index),
+				Term:    int64(entry.Term),
+				Payload: entry.Payload,
+			}
+		}
+
 		resp, err := peer.AppendEntries(context.Background(), &raftv1.AppendEntriesRequest{
 			Term:         int64(req.Term),
 			LeaderId:     int64(req.LeaderID),
 			PrevLogIndex: int64(req.PrevLogIndex),
 			PrevLogTerm:  int64(req.Term),
-			Entries:      nil,
+			Entries:      entries,
 		})
 
 		if err != nil {
@@ -49,6 +58,7 @@ func (c *Client) sendAppendEntriesRequest(node lautta.NodeID, req lautta.AppendE
 		c.comms.AppendEntriesResponsesIn <- lautta.AppendEntriesResponse{
 			Term:    lautta.TermID(resp.Term),
 			Success: resp.Success,
+			Request: req,
 		}
 	}()
 

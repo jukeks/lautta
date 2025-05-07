@@ -67,6 +67,8 @@ type Node struct {
 
 	Leader *LeaderState
 
+	ongoingOperations map[LogIndex]ProposeRequest
+
 	Quit chan bool
 	Done chan bool
 
@@ -91,6 +93,8 @@ func NewNode(config Config, comms Comms) *Node {
 		Leader: nil,
 
 		LastHeartbeat: time.Now(),
+
+		ongoingOperations: make(map[LogIndex]ProposeRequest),
 
 		Quit: make(chan bool, 1),
 		Done: make(chan bool, 1),
