@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jukeks/lautta"
+	lautta "github.com/jukeks/lautta/lib"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
 	"google.golang.org/grpc"
 )
@@ -20,12 +20,12 @@ var (
 	logger = log.New(os.Stderr, "[server] ", log.Lmicroseconds)
 )
 
-func parseConfig() lautta.Config {
-	if *config == "" {
+func parseConfig(config string) lautta.Config {
+	if config == "" {
 		logger.Fatal("config is required")
 	}
 
-	nodes := strings.Split(*config, ",")
+	nodes := strings.Split(config, ",")
 	peers := make([]lautta.Peer, len(nodes))
 	for i, node := range nodes {
 		components := strings.Split(node, "=")
@@ -56,7 +56,7 @@ func parseConfig() lautta.Config {
 
 func main() {
 	flag.Parse()
-	cfg := parseConfig()
+	cfg := parseConfig(*config)
 	lauttaNode := lautta.NewNode(cfg)
 	go lauttaNode.Run()
 	defer lauttaNode.Stop()

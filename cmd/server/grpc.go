@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/jukeks/lautta"
+	lautta "github.com/jukeks/lautta/lib"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
 )
 
