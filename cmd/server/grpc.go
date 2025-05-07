@@ -12,20 +12,20 @@ import (
 type RaftServer struct {
 	raftv1.UnimplementedRaftServiceServer
 	logger *log.Logger
-	node   *lautta.Node
+	comms  lautta.Comms
 }
 
-func NewRaftServer(node *lautta.Node) *RaftServer {
+func NewRaftServer(comms lautta.Comms) *RaftServer {
 	return &RaftServer{
 		logger: log.New(os.Stderr, "[grpc] ", log.Lmicroseconds),
-		node:   node,
+		comms:  comms,
 	}
 }
 
 func (s *RaftServer) AppendEntries(ctx context.Context, req *raftv1.AppendEntriesRequest) (*raftv1.AppendEntriesResponse, error) {
 	s.logger.Println("AppendEntries called")
 	ret := make(chan lautta.AppendEntriesResponse, 1)
-	s.node.AppendEntriesRequests <- lautta.AppendEntriesRequest{
+	s.comms.AppendEntriesRequestsIn <- lautta.AppendEntriesRequest{
 		Term:         lautta.TermID(req.Term),
 		LeaderID:     lautta.NodeID(req.LeaderId),
 		PrevLogIndex: lautta.LogIndex(req.PrevLogIndex),
@@ -46,7 +46,7 @@ func (s *RaftServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteReq
 	s.logger.Println("RequestVote called")
 
 	ret := make(chan lautta.RequestVoteResponse, 1)
-	s.node.VoteRequests <- lautta.RequestVoteRequest{
+	s.comms.RequestVoteRequestsIn <- lautta.RequestVoteRequest{
 		Term:         lautta.TermID(req.Term),
 		CandidateID:  lautta.NodeID(req.CandidateId),
 		LastLogIndex: lautta.LogIndex(req.LastLogIndex),

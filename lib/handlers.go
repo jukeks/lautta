@@ -1,11 +1,8 @@
 package lautta
 
 import (
-	"context"
 	"math/rand"
 	"time"
-
-	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
 )
 
 func (n *Node) handleTick() {
@@ -121,47 +118,27 @@ func (n *Node) runElection() {
 
 	lastLog := n.getLastLog()
 
-	for _, peer := range n.peerClients {
-		go func() {
-			resp, err := peer.RequestVote(context.Background(), &raftv1.RequestVoteRequest{
-				Term:         int64(n.CurrentTerm),
-				CandidateId:  int64(n.config.ID),
-				LastLogIndex: int64(lastLog.Index),
-				LastLogTerm:  int64(lastLog.Term),
-			})
-
-			if err != nil {
-				n.logger.Printf("error requesting vote: %v", err)
-				return
-			}
-			n.VoteResponses <- RequestVoteResponse{
-				Term:        TermID(resp.Term),
-				VoteGranted: resp.VoteGranted,
-			}
-		}()
+	for _, peer := range n.config.Peers {
+		n.comms.RequestVoteRequestsOut <- RequestVoteRequest{
+			Term:         n.CurrentTerm,
+			CandidateID:  n.config.ID,
+			LastLogIndex: lastLog.Index,
+			LastLogTerm:  lastLog.Term,
+			TargetNode:   peer.ID,
+		}
 	}
 }
 
 func (n *Node) sendHeartbeats() {
 	lastLog := n.getLastLog()
-	for _, peer := range n.peerClients {
-		go func() {
-			resp, err := peer.AppendEntries(context.Background(), &raftv1.AppendEntriesRequest{
-				Term:         int64(n.CurrentTerm),
-				LeaderId:     int64(n.config.ID),
-				PrevLogIndex: int64(lastLog.Index),
-				PrevLogTerm:  int64(lastLog.Term),
-				LeaderCommit: int64(n.CommitIndex),
-			})
-
-			if err != nil {
-				n.logger.Printf("error heartbeating: %v", err)
-				return
-			}
-			n.AppendEntriesResponses <- AppendEntriesResponse{
-				Term:    TermID(resp.Term),
-				Success: resp.Success,
-			}
-		}()
+	for _, peer := range n.config.Peers {
+		n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
+			Term:         n.CurrentTerm,
+			LeaderID:     n.config.ID,
+			PrevLogIndex: lastLog.Index,
+			PrevLogTerm:  lastLog.Term,
+			LeaderCommit: n.CommitIndex,
+			TargetNode:   peer.ID,
+		}
 	}
 }
