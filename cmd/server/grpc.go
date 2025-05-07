@@ -25,12 +25,19 @@ func NewRaftServer(comms lautta.Comms) *RaftServer {
 func (s *RaftServer) AppendEntries(ctx context.Context, req *raftv1.AppendEntriesRequest) (*raftv1.AppendEntriesResponse, error) {
 	s.logger.Println("AppendEntries called")
 	ret := make(chan lautta.AppendEntriesResponse, 1)
+	entries := make([]lautta.LogEntry, len(req.Entries))
+	for i, entry := range req.Entries {
+		entries[i].Index = lautta.LogIndex(entry.Index)
+		entries[i].Term = lautta.TermID(entry.Term)
+		entries[i].Payload = entry.Payload
+	}
+
 	s.comms.AppendEntriesRequestsIn <- lautta.AppendEntriesRequest{
 		Term:         lautta.TermID(req.Term),
 		LeaderID:     lautta.NodeID(req.LeaderId),
 		PrevLogIndex: lautta.LogIndex(req.PrevLogIndex),
 		PrevLogTerm:  lautta.TermID(req.PrevLogTerm),
-		Entries:      []lautta.LogEntry{},
+		Entries:      entries,
 		LeaderCommit: lautta.LogIndex(req.LeaderCommit),
 		Ret:          ret,
 	}

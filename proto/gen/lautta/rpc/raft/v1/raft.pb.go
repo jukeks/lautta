@@ -279,6 +279,9 @@ func (x *AppendEntriesResponse) GetSuccess() bool {
 
 type Entry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Index         int64                  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	Term          int64                  `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	Payload       []byte                 `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -313,6 +316,27 @@ func (*Entry) Descriptor() ([]byte, []int) {
 	return file_lautta_rpc_raft_v1_raft_proto_rawDescGZIP(), []int{4}
 }
 
+func (x *Entry) GetIndex() int64 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *Entry) GetTerm() int64 {
+	if x != nil {
+		return x.Term
+	}
+	return 0
+}
+
+func (x *Entry) GetPayload() []byte {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
 var File_lautta_rpc_raft_v1_raft_proto protoreflect.FileDescriptor
 
 const file_lautta_rpc_raft_v1_raft_proto_rawDesc = "" +
@@ -335,8 +359,11 @@ const file_lautta_rpc_raft_v1_raft_proto_rawDesc = "" +
 	"\rleader_commit\x18\x06 \x01(\x03R\fleaderCommit\"E\n" +
 	"\x15AppendEntriesResponse\x12\x12\n" +
 	"\x04term\x18\x01 \x01(\x03R\x04term\x12\x18\n" +
-	"\asuccess\x18\x02 \x01(\bR\asuccess\"\a\n" +
-	"\x05Entry2\xd3\x01\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess\"K\n" +
+	"\x05Entry\x12\x14\n" +
+	"\x05index\x18\x01 \x01(\x03R\x05index\x12\x12\n" +
+	"\x04term\x18\x02 \x01(\x03R\x04term\x12\x18\n" +
+	"\apayload\x18\x03 \x01(\fR\apayload2\xd3\x01\n" +
 	"\vRaftService\x12^\n" +
 	"\vRequestVote\x12&.lautta.rpc.raft.v1.RequestVoteRequest\x1a'.lautta.rpc.raft.v1.RequestVoteResponse\x12d\n" +
 	"\rAppendEntries\x12(.lautta.rpc.raft.v1.AppendEntriesRequest\x1a).lautta.rpc.raft.v1.AppendEntriesResponseB\xc8\x01\n" +

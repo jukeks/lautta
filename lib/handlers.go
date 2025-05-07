@@ -19,17 +19,61 @@ func (n *Node) handleTick() {
 	}
 }
 
+func (n *Node) findLog(idx LogIndex) *LogEntry {
+	for _, entry := range n.Log {
+		if entry.Index == idx {
+			return &entry
+		}
+	}
+
+	return nil
+}
+
+func (n *Node) deleteAndAfter(idx LogIndex) {
+	for i, entry := range n.Log {
+		if entry.Index == idx {
+			n.Log = n.Log[:i]
+		}
+	}
+}
+
+func (n *Node) addEntry(entry LogEntry) {
+	n.Log = append(n.Log, entry)
+}
+
 func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 	n.logger.Printf("append entries req: %+v", req)
 
 	if req.Term > n.CurrentTerm {
 		n.CurrentTerm = req.Term
 		n.VotedFor = nil
+		n.State = Follower
+	}
+
+	olderTerm := req.Term < n.CurrentTerm
+	prevLog := n.findLog(req.PrevLogIndex)
+	prevLogMismatch := prevLog == nil || prevLog.Term != req.PrevLogTerm
+
+	for _, newEntry := range req.Entries {
+		existingEntry := n.findLog(newEntry.Index)
+		if existingEntry != nil {
+			if existingEntry.Term != newEntry.Term {
+				n.deleteAndAfter(newEntry.Index)
+				break
+			}
+		} else {
+			n.addEntry(newEntry)
+		}
+	}
+
+	if req.LeaderCommit > n.CommitIndex {
+		lastLog := n.getLastLog()
+		n.CommitIndex = min(lastLog.Index, req.LeaderCommit)
 	}
 
 	req.Ret <- AppendEntriesResponse{
 		Term:    n.CurrentTerm,
-		Success: true, // XXXX
+		Success: !olderTerm || prevLogMismatch,
 	}
 	n.LastHeartbeat = time.Now()
 }
@@ -43,6 +87,7 @@ func (n *Node) handleVoteRequest(req RequestVoteRequest) {
 	if req.Term > n.CurrentTerm {
 		n.CurrentTerm = req.Term
 		n.VotedFor = nil
+		n.State = Follower // TODO check
 	}
 
 	olderTerm := req.Term < n.CurrentTerm
@@ -72,6 +117,7 @@ func (n *Node) handleVoteResponse(resp RequestVoteResponse) {
 	if resp.Term > n.CurrentTerm {
 		n.CurrentTerm = resp.Term
 		n.VotedFor = nil
+		n.State = Follower
 	}
 	if resp.VoteGranted {
 		n.votes += 1
