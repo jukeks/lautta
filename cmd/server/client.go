@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	lautta "github.com/jukeks/lautta/lib"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
+	lautta "github.com/jukeks/lautta/raft"
 )
 
 type Client struct {

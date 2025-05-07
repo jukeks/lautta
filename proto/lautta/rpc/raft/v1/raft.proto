@@ -5,8 +5,8 @@ package lautta.rpc.raft.v1;
 option go_package = "github.com/jukeks/lautta/rpc/raft";
 
 service RaftService {
-    rpc RequestVote(RequestVoteRequest) returns (RequestVoteResponse);
-    rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse);
+  rpc RequestVote(RequestVoteRequest) returns (RequestVoteResponse);
+  rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse);
 }
 
 message RequestVoteRequest {

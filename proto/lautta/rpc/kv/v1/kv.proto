@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package lautta.rpc.kv.v1;
+
+option go_package = "github.com/jukeks/lautta/rpc/kv";
+
+
+
+service KVService {
+    rpc Write(WriteRequest) returns (WriteResponse);
+}
+
+message WriteRequest {
+    string key = 1;
+    string value = 2;
+}
+
+message WriteResponse {
+    
+}

@@ -19,28 +19,6 @@ func (n *Node) handleTick() {
 	}
 }
 
-func (n *Node) findLog(idx LogIndex) *LogEntry {
-	for _, entry := range n.Log {
-		if entry.Index == idx {
-			return &entry
-		}
-	}
-
-	return nil
-}
-
-func (n *Node) deleteAndAfter(idx LogIndex) {
-	for i, entry := range n.Log {
-		if entry.Index == idx {
-			n.Log = n.Log[:i]
-		}
-	}
-}
-
-func (n *Node) addEntry(entry LogEntry) {
-	n.Log = append(n.Log, entry)
-}
-
 func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 	n.logger.Printf("append entries req: %+v", req)
 
@@ -80,6 +58,7 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 
 func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 	n.logger.Printf("append entries resp: %+v", resp)
+	// TODO
 }
 
 func (n *Node) handleVoteRequest(req RequestVoteRequest) {
@@ -185,6 +164,33 @@ func (n *Node) sendHeartbeats() {
 			PrevLogTerm:  lastLog.Term,
 			LeaderCommit: n.CommitIndex,
 			TargetNode:   peer.ID,
+		}
+	}
+}
+
+func (n *Node) handleProposeRequest(req ProposeRequest) {
+	lastLog := n.getLastLog()
+	entry := LogEntry{
+		Term:    n.CurrentTerm,
+		Index:   lastLog.Index + 1,
+		Payload: req.Payload,
+	}
+	n.addEntry(entry)
+	n.replicate()
+}
+
+func (n *Node) replicate() {
+	lastLog := n.getLastLog()
+	for nodeID, nextIndex := range n.Leader.NextIndex {
+		entry := n.findLog(nextIndex)
+		n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
+			Term:         n.CurrentTerm,
+			LeaderID:     n.config.ID,
+			PrevLogIndex: lastLog.Index,
+			PrevLogTerm:  lastLog.Term,
+			LeaderCommit: n.CommitIndex,
+			TargetNode:   nodeID,
+			Entries:      []LogEntry{*entry},
 		}
 	}
 }

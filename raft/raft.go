@@ -142,6 +142,9 @@ loop:
 		case voteResponse := <-n.comms.RequestVoteResponsesIn:
 			n.handleVoteResponse(voteResponse)
 
+		case proposeReq := <-n.comms.ProposeRequestsIn:
+			n.handleProposeRequest(proposeReq)
+
 		case <-n.Quit:
 			n.logger.Println("quitting")
 			break loop

@@ -9,8 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	lautta "github.com/jukeks/lautta/lib"
+	kvv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/kv/v1"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
+	lautta "github.com/jukeks/lautta/raft"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -93,5 +94,6 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	raftv1.RegisterRaftServiceServer(grpcServer, raftServer)
+	kvv1.RegisterKVServiceServer(grpcServer, raftServer)
 	grpcServer.Serve(ls)
 }

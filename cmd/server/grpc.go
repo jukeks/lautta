@@ -2,15 +2,18 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 
-	lautta "github.com/jukeks/lautta/lib"
+	kvv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/kv/v1"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
+	lautta "github.com/jukeks/lautta/raft"
 )
 
 type RaftServer struct {
 	raftv1.UnimplementedRaftServiceServer
+	kvv1.UnimplementedKVServiceServer
 	logger *log.Logger
 	comms  lautta.Comms
 }
@@ -67,4 +70,30 @@ func (s *RaftServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteReq
 		Term:        int64(resp.Term),
 		VoteGranted: resp.VoteGranted,
 	}, nil
+}
+
+type KV struct {
+	Key   string
+	Value string
+}
+
+func (s *RaftServer) Write(ctx context.Context, req *kvv1.WriteRequest) (*kvv1.WriteResponse, error) {
+	s.logger.Println("Write called")
+	payload := KV{
+		Key:   req.Key,
+		Value: req.Value,
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	ret := make(chan lautta.ProposeResponse)
+	s.comms.ProposeRequestsIn <- lautta.ProposeRequest{
+		Payload: raw,
+		Ret:     ret,
+	}
+
+	<-ret
+	s.logger.Println("Write response received")
+	return &kvv1.WriteResponse{}, nil
 }

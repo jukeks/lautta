@@ -35,12 +35,22 @@ type RequestVoteResponse struct {
 	VoteGranted bool
 }
 
+type ProposeRequest struct {
+	Payload []byte
+
+	Ret chan ProposeResponse
+}
+
+type ProposeResponse struct{}
+
 type Comms struct {
 	// messages to node
 	AppendEntriesRequestsIn  chan AppendEntriesRequest
 	AppendEntriesResponsesIn chan AppendEntriesResponse
 	RequestVoteRequestsIn    chan RequestVoteRequest
 	RequestVoteResponsesIn   chan RequestVoteResponse
+
+	ProposeRequestsIn chan ProposeRequest
 
 	// messages from node
 	AppendEntriesRequestsOut chan AppendEntriesRequest
@@ -53,6 +63,8 @@ func NewComms() Comms {
 		AppendEntriesResponsesIn: make(chan AppendEntriesResponse, 10),
 		RequestVoteRequestsIn:    make(chan RequestVoteRequest, 10),
 		RequestVoteResponsesIn:   make(chan RequestVoteResponse, 10),
+
+		ProposeRequestsIn: make(chan ProposeRequest, 10),
 
 		AppendEntriesRequestsOut: make(chan AppendEntriesRequest, 10),
 		RequestVoteRequestsOut:   make(chan RequestVoteRequest, 10),
