@@ -23,8 +23,18 @@ func (n *Node) addEntry(entry LogEntry) {
 }
 
 func (n *Node) getFrom(idx LogIndex) []LogEntry {
-	slice := n.Log[idx:]
-	cp := make([]LogEntry, 0, len(slice))
-	copy(cp, slice)
-	return cp
+	slice := make([]LogEntry, 0)
+	appending := true
+	for _, entry := range n.Log {
+		if entry.Index == idx {
+			appending = true
+		}
+
+		if !appending {
+			continue
+		}
+		slice = append(slice, entry)
+	}
+
+	return slice
 }

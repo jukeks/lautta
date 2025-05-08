@@ -45,9 +45,21 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 		}
 	}
 
-	// should this be resolved before or after adding entries?
+	logIndexes := []LogIndex{}
+	for _, entry := range n.Log {
+		logIndexes = append(logIndexes, entry.Index)
+	}
+
 	prevLog := n.getLog(req.PrevLogIndex)
 	prevLogMismatch := prevLog == nil || prevLog.Term != req.PrevLogTerm
+	n.logger.Printf("current log: %v", logIndexes)
+	n.logger.Printf("prevLogMismatch: %t req.PrevLog: index: %d term: %d",
+		prevLogMismatch, req.PrevLogIndex, req.PrevLogTerm)
+
+	if req.PrevLogIndex == 0 {
+		// startup
+		prevLogMismatch = false
+	}
 
 	if req.LeaderCommit > n.CommitIndex {
 		lastLog := n.getLastLog()
@@ -57,7 +69,7 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 
 	req.Ret <- AppendEntriesResponse{
 		Term:    n.CurrentTerm,
-		Success: !olderTerm || !prevLogMismatch,
+		Success: !olderTerm && !prevLogMismatch,
 	}
 	n.LastHeartbeat = time.Now()
 }
@@ -104,7 +116,9 @@ func (n *Node) checkCommitProgress() {
 	n.CommitIndex = commitIndex
 	toDelete := []LogIndex{}
 	for idx, req := range n.ongoingOperations {
+		// TODO sort by index
 		if idx <= commitIndex {
+			// TODO apply to FSM
 			req.Ret <- ProposeResponse{}
 			toDelete = append(toDelete, idx)
 		}

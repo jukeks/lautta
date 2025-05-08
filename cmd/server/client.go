@@ -47,7 +47,7 @@ func (c *Client) sendAppendEntriesRequest(node lautta.NodeID, req lautta.AppendE
 			Term:         int64(req.Term),
 			LeaderId:     int64(req.LeaderID),
 			PrevLogIndex: int64(req.PrevLogIndex),
-			PrevLogTerm:  int64(req.Term),
+			PrevLogTerm:  int64(req.PrevLogTerm),
 			Entries:      entries,
 		})
 
