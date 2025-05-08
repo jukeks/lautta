@@ -127,11 +127,12 @@ func (n *Node) Stop() {
 
 func (n *Node) Run() {
 	n.logger.Printf("starting node %d", n.config.ID)
+	ticker := time.NewTicker(Tick)
 
 loop:
 	for {
 		select {
-		case <-time.After(Tick):
+		case <-ticker.C:
 			n.handleTick()
 
 		case appendEntryReq := <-n.comms.AppendEntriesRequestsIn:
