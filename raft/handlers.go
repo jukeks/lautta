@@ -29,13 +29,16 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 		n.State = Follower
 	}
 
+	n.logger.Printf("got %d entries", len(req.Entries))
+
 	olderTerm := req.Term < n.CurrentTerm
 	for _, newEntry := range req.Entries {
 		existingEntry := n.getLog(newEntry.Index)
 		if existingEntry != nil {
 			if existingEntry.Term != newEntry.Term {
 				n.deleteFrom(newEntry.Index)
-				break
+				n.addEntry(newEntry)
+				continue
 			}
 		} else {
 			n.addEntry(newEntry)
@@ -49,11 +52,12 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 	if req.LeaderCommit > n.CommitIndex {
 		lastLog := n.getLastLog()
 		n.CommitIndex = min(lastLog.Index, req.LeaderCommit)
+		// TODO commit FSM
 	}
 
 	req.Ret <- AppendEntriesResponse{
 		Term:    n.CurrentTerm,
-		Success: !olderTerm || prevLogMismatch,
+		Success: !olderTerm || !prevLogMismatch,
 	}
 	n.LastHeartbeat = time.Now()
 }
