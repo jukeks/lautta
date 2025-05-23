@@ -3,6 +3,7 @@ package lautta
 import (
 	"errors"
 	"math/rand"
+	"sort"
 	"time"
 )
 
@@ -68,8 +69,18 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 			n.logger.Fatalf("failed to read log: %v", err)
 		}
 
+		prevCommit := n.CommitIndex
 		n.CommitIndex = min(lastLog.Index, req.LeaderCommit)
-		// TODO commit FSM
+		logs, err := n.Log.GetBetween(prevCommit+1, n.CommitIndex)
+		if err != nil {
+			n.logger.Fatalf("failed to read log: %v", err)
+		}
+
+		for _, log := range logs {
+			if err := n.fsm.Apply(log); err != nil {
+				n.logger.Fatalf("failed to apply log: %v", err)
+			}
+		}
 	}
 
 	req.Ret <- AppendEntriesResponse{
@@ -110,6 +121,16 @@ func (n *Node) getMajorityIndex() LogIndex {
 	return maxIndex
 }
 
+func (n *Node) getOperationsSorted() []LogIndex {
+	operations := []LogIndex{}
+	for idx := range n.ongoingOperations {
+		operations = append(operations, idx)
+	}
+
+	sort.Slice(operations, func(i, j int) bool { return operations[i] < operations[j] })
+	return operations
+}
+
 func (n *Node) checkCommitProgress() {
 	commitIndex := n.getMajorityIndex()
 	if commitIndex <= n.CommitIndex {
@@ -120,10 +141,17 @@ func (n *Node) checkCommitProgress() {
 
 	n.CommitIndex = commitIndex
 	toDelete := []LogIndex{}
-	for idx, req := range n.ongoingOperations {
-		// TODO sort by index
+	for _, idx := range n.getOperationsSorted() {
+		req := n.ongoingOperations[idx]
 		if idx <= commitIndex {
-			// TODO apply to FSM
+			log, err := n.Log.Get(idx)
+			if err != nil {
+				n.logger.Fatalf("failed to read log: %v", err)
+			}
+			if err := n.fsm.Apply(log); err != nil {
+				n.logger.Fatalf("failed to apply log: %v", err)
+			}
+
 			req.Ret <- ProposeResponse{}
 			toDelete = append(toDelete, idx)
 		}

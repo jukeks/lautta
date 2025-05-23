@@ -71,6 +71,15 @@ func initPeerClients(peers []lautta.Peer) map[lautta.NodeID]raftv1.RaftServiceCl
 	return peerClients
 }
 
+type fsm struct {
+	logs []lautta.LogEntry
+}
+
+func (f *fsm) Apply(log lautta.LogEntry) error {
+	f.logs = append(f.logs, log)
+	return nil
+}
+
 func main() {
 	flag.Parse()
 	cfg := parseConfig(*config)
@@ -81,7 +90,8 @@ func main() {
 	client := NewClient(peers, comms)
 	go client.Run()
 
-	lauttaNode := lautta.NewNode(cfg, comms)
+	fsm := &fsm{}
+	lauttaNode := lautta.NewNode(cfg, comms, fsm)
 	go lauttaNode.Run()
 	defer lauttaNode.Stop()
 

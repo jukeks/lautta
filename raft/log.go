@@ -4,6 +4,7 @@ type Log interface {
 	Add(LogEntry) error
 	Get(idx LogIndex) (LogEntry, error)
 	GetFrom(idx LogIndex) ([]LogEntry, error)
+	GetBetween(min LogIndex, max LogIndex) ([]LogEntry, error)
 	GetLastLog() (LogEntry, error)
 	DeleteFrom(idx LogIndex) error
 }
@@ -54,6 +55,27 @@ func (l *InMemLog) GetFrom(idx LogIndex) ([]LogEntry, error) {
 			continue
 		}
 		slice = append(slice, entry)
+	}
+
+	return slice, nil
+}
+
+func (l *InMemLog) GetBetween(min, max LogIndex) ([]LogEntry, error) {
+	slice := make([]LogEntry, 0)
+	appending := true
+	for _, entry := range l.entries {
+		if entry.Index == min {
+			appending = true
+		}
+
+		if !appending {
+			continue
+		}
+		slice = append(slice, entry)
+
+		if entry.Index == max {
+			break
+		}
 	}
 
 	return slice, nil

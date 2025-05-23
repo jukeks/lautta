@@ -75,9 +75,11 @@ type Node struct {
 	logger *log.Logger
 
 	comms Comms
+
+	fsm FSM
 }
 
-func NewNode(config Config, comms Comms) *Node {
+func NewNode(config Config, comms Comms, fsm FSM) *Node {
 	return &Node{
 		config: config,
 		comms:  comms,
@@ -100,6 +102,8 @@ func NewNode(config Config, comms Comms) *Node {
 		Done: make(chan bool, 1),
 
 		logger: log.New(os.Stderr, "[raft] ", log.Lmicroseconds),
+
+		fsm: fsm,
 	}
 }
 
