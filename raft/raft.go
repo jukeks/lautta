@@ -1,6 +1,7 @@
 package lautta
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -42,7 +43,7 @@ type LeaderState struct {
 
 const (
 	Tick             = 1000 * time.Millisecond
-	HeartbeatTimeout = 5 * time.Second
+	HeartbeatTimeout = 500 * time.Millisecond
 	ElectionTimeout  = 1 * time.Second
 )
 
@@ -80,6 +81,7 @@ type Node struct {
 }
 
 func NewNode(config Config, comms Comms, fsm FSM) *Node {
+	prefix := fmt.Sprintf("[node %d] ", config.ID)
 	return &Node{
 		config: config,
 		comms:  comms,
@@ -101,7 +103,7 @@ func NewNode(config Config, comms Comms, fsm FSM) *Node {
 		Quit: make(chan bool, 1),
 		Done: make(chan bool, 1),
 
-		logger: log.New(os.Stderr, "[raft] ", log.Lmicroseconds),
+		logger: log.New(os.Stderr, prefix, 0),
 
 		fsm: fsm,
 	}

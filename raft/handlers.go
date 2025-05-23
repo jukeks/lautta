@@ -198,7 +198,6 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 }
 
 func (n *Node) handleVoteRequest(req RequestVoteRequest) {
-	n.logger.Printf("vote request: %+v", req)
 	if req.Term > n.CurrentTerm {
 		n.CurrentTerm = req.Term
 		n.VotedFor = nil
@@ -220,10 +219,13 @@ func (n *Node) handleVoteRequest(req RequestVoteRequest) {
 		n.VotedFor = &votedFor
 	}
 
-	req.Ret <- RequestVoteResponse{
+	resp := RequestVoteResponse{
 		Term:        n.CurrentTerm,
 		VoteGranted: voteGranted,
 	}
+
+	n.logger.Printf("vote request from node %d: %+v. resp: %+v", req.CandidateID, req, resp)
+	req.Ret <- resp
 }
 
 func (n *Node) handleVoteResponse(resp RequestVoteResponse) {
@@ -273,7 +275,7 @@ func (n *Node) handleElectionResults() {
 		n.logger.Printf("lost election")
 		n.State = Follower
 		// add jitter to prevent stalemate
-		n.LastHeartbeat = time.Now().Add(time.Duration(rand.Int63n(int64(HeartbeatTimeout))))
+		n.LastHeartbeat = time.Now().Add(time.Duration(rand.Int63n(int64(HeartbeatTimeout * 2))))
 	}
 }
 
@@ -281,6 +283,8 @@ func (n *Node) startElection() {
 	n.State = Candidate
 	n.LastElection = time.Now()
 	n.CurrentTerm++
+	votedFor := n.config.ID
+	n.VotedFor = &votedFor
 	n.votes = 1
 	n.voteResponsesReceived = 0
 
