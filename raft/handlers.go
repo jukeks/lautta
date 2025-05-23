@@ -138,7 +138,7 @@ func (n *Node) checkCommitProgress() {
 		return
 	}
 
-	n.logger.Printf("xxxx committed %d", commitIndex)
+	n.logger.Printf("committed %d", commitIndex)
 
 	n.CommitIndex = commitIndex
 	toDelete := []LogIndex{}
@@ -161,6 +161,8 @@ func (n *Node) checkCommitProgress() {
 	for _, idx := range toDelete {
 		delete(n.ongoingOperations, idx)
 	}
+
+	n.sendHeartbeats()
 }
 
 func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {

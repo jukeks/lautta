@@ -1,6 +1,7 @@
 package lautta
 
 import (
+	"bytes"
 	"testing"
 	"time"
 )
@@ -63,7 +64,7 @@ func (f *fsm) Apply(log LogEntry) error {
 	return nil
 }
 
-func getCluster() ([]*Node, func()) {
+func getCluster() ([]*Node, []*fsm, func()) {
 	comms1 := NewComms()
 	comms2 := NewComms()
 	comms3 := NewComms()
@@ -114,7 +115,7 @@ func getCluster() ([]*Node, func()) {
 		stop <- true
 	}
 
-	return []*Node{node1, node2, node3}, cleanup
+	return []*Node{node1, node2, node3}, []*fsm{fsm1, fsm2, fsm3}, cleanup
 }
 
 func getLeader(cluster []*Node) *Node {
@@ -133,7 +134,7 @@ func getLeader(cluster []*Node) *Node {
 }
 
 func TestElection(t *testing.T) {
-	cluster, cleanup := getCluster()
+	cluster, _, cleanup := getCluster()
 
 	leaders := 0
 	deadline := time.Now().Add(10 * time.Second)
@@ -160,7 +161,7 @@ func TestElection(t *testing.T) {
 }
 
 func TestPropose(t *testing.T) {
-	cluster, cleanup := getCluster()
+	cluster, fsms, cleanup := getCluster()
 	defer cleanup()
 
 	leader := getLeader(cluster)
@@ -168,9 +169,10 @@ func TestPropose(t *testing.T) {
 		t.Fatalf("failed to get leader")
 	}
 
+	payload := []byte("test payload")
 	ret := make(chan ProposeResponse, 1)
 	leader.comms.ProposeRequestsIn <- ProposeRequest{
-		Payload: []byte("lol"),
+		Payload: payload,
 		Ret:     ret,
 	}
 
@@ -183,4 +185,10 @@ func TestPropose(t *testing.T) {
 		t.Fatalf("timed out")
 	}
 
+	time.Sleep(50 * time.Millisecond)
+	for _, f := range fsms {
+		if !bytes.Equal(f.logs[0].Payload, payload) {
+			t.Errorf("leader fsm doesn't contain log")
+		}
+	}
 }

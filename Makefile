@@ -1,5 +1,5 @@
 .PHONY: proto test test-cover build
-default: format proto build test
+default: build test
 
 proto:
 	cd proto && \
