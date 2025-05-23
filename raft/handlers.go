@@ -9,7 +9,7 @@ import (
 func (n *Node) handleTick() {
 	if n.State == Follower && time.Since(n.LastHeartbeat) > HeartbeatTimeout {
 		n.logger.Println("starting elections")
-		n.runElection()
+		n.startElection()
 	}
 	if n.State == Candidate && time.Since(n.LastElection) > ElectionTimeout {
 		n.logger.Println("Ending elections with timeout")
@@ -33,26 +33,27 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 
 	olderTerm := req.Term < n.CurrentTerm
 	for _, newEntry := range req.Entries {
-		existingEntry := n.getLog(newEntry.Index)
-		if existingEntry != nil {
+		existingEntry, err := n.Log.Get(newEntry.Index)
+		if err != nil {
+			n.logger.Fatalf("failed to read log: %v", err)
+		}
+		if existingEntry.Index != 0 {
 			if existingEntry.Term != newEntry.Term {
-				n.deleteFrom(newEntry.Index)
-				n.addEntry(newEntry)
+				n.Log.DeleteFrom(newEntry.Index)
+				n.Log.Add(newEntry)
 				continue
 			}
 		} else {
-			n.addEntry(newEntry)
+			n.Log.Add(newEntry)
 		}
 	}
 
-	logIndexes := []LogIndex{}
-	for _, entry := range n.Log {
-		logIndexes = append(logIndexes, entry.Index)
+	prevLog, err := n.Log.Get(req.PrevLogIndex)
+	if err != nil {
+		n.logger.Fatalf("failed to read log: %v", err)
 	}
 
-	prevLog := n.getLog(req.PrevLogIndex)
-	prevLogMismatch := prevLog == nil || prevLog.Term != req.PrevLogTerm
-	n.logger.Printf("current log: %v", logIndexes)
+	prevLogMismatch := prevLog.Index == 0 || prevLog.Term != req.PrevLogTerm
 	n.logger.Printf("prevLogMismatch: %t req.PrevLog: index: %d term: %d",
 		prevLogMismatch, req.PrevLogIndex, req.PrevLogTerm)
 
@@ -62,7 +63,11 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 	}
 
 	if req.LeaderCommit > n.CommitIndex {
-		lastLog := n.getLastLog()
+		lastLog, err := n.Log.GetLastLog()
+		if err != nil {
+			n.logger.Fatalf("failed to read log: %v", err)
+		}
+
 		n.CommitIndex = min(lastLog.Index, req.LeaderCommit)
 		// TODO commit FSM
 	}
@@ -142,9 +147,16 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 	}
 
 	// one at a time try how far logs are missing
-	lastLog := n.getLastLog()
+	lastLog, err := n.Log.GetLastLog()
+	if err != nil {
+		n.logger.Fatalf("failed to read log: %v", err)
+	}
+
 	earliestInLastReq := firstOr(req.Entries, lastLog)
-	entries := n.getFrom(earliestInLastReq.Index - 1)
+	entries, err := n.Log.GetFrom(earliestInLastReq.Index - 1)
+	if err != nil {
+		n.logger.Fatalf("failed to read log: %v", err)
+	}
 
 	n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
 		Term:         n.CurrentTerm,
@@ -166,7 +178,11 @@ func (n *Node) handleVoteRequest(req RequestVoteRequest) {
 	}
 
 	olderTerm := req.Term < n.CurrentTerm
-	lastLog := n.getLastLog()
+	lastLog, err := n.Log.GetLastLog()
+	if err != nil {
+		n.logger.Fatalf("failed to read log: %v", err)
+	}
+
 	olderIndex := lastLog.Index > req.LastLogIndex
 	canVote := n.VotedFor == nil || *n.VotedFor == req.CandidateID
 	voteGranted := !olderTerm && !olderIndex && canVote
@@ -210,7 +226,10 @@ func (n *Node) handleElectionResults() {
 		n.logger.Printf("node %d won election", n.config.ID)
 		n.State = Leader
 
-		lastLog := n.getLastLog()
+		lastLog, err := n.Log.GetLastLog()
+		if err != nil {
+			n.logger.Fatalf("failed to read log: %v", err)
+		}
 
 		n.Leader = &LeaderState{
 			NextIndex:  make(map[NodeID]LogIndex),
@@ -230,14 +249,17 @@ func (n *Node) handleElectionResults() {
 	}
 }
 
-func (n *Node) runElection() {
+func (n *Node) startElection() {
 	n.State = Candidate
 	n.LastElection = time.Now()
 	n.CurrentTerm++
 	n.votes = 1
 	n.voteResponsesReceived = 0
 
-	lastLog := n.getLastLog()
+	lastLog, err := n.Log.GetLastLog()
+	if err != nil {
+		n.logger.Fatalf("failed to read log: %v", err)
+	}
 
 	for _, peer := range n.config.Peers {
 		n.comms.RequestVoteRequestsOut <- RequestVoteRequest{
@@ -251,7 +273,11 @@ func (n *Node) runElection() {
 }
 
 func (n *Node) sendHeartbeats() {
-	lastLog := n.getLastLog()
+	lastLog, err := n.Log.GetLastLog()
+	if err != nil {
+		n.logger.Fatalf("failed to read log: %v", err)
+	}
+
 	for _, peer := range n.config.Peers {
 		n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
 			Term:         n.CurrentTerm,
@@ -273,22 +299,34 @@ func (n *Node) handleProposeRequest(req ProposeRequest) {
 		return
 	}
 
-	lastLog := n.getLastLog()
+	lastLog, err := n.Log.GetLastLog()
+	if err != nil {
+		n.logger.Fatalf("failed to read log: %v", err)
+	}
+
 	entry := LogEntry{
 		Term:    n.CurrentTerm,
 		Index:   lastLog.Index + 1,
 		Payload: req.Payload,
 	}
-	n.addEntry(entry)
+	n.Log.Add(entry)
 	n.ongoingOperations[entry.Index] = req
 
 	n.replicate()
 }
 
 func (n *Node) replicate() {
-	lastLog := n.getLastLog()
+	lastLog, err := n.Log.GetLastLog()
+	if err != nil {
+		n.logger.Fatalf("failed to read log: %v", err)
+	}
+
 	for nodeID, nextIndex := range n.Leader.NextIndex {
-		entry := n.getLog(nextIndex)
+		entry, err := n.Log.Get(nextIndex)
+		if err != nil {
+			n.logger.Fatalf("failed to read log: %v", err)
+		}
+
 		n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
 			Term:         n.CurrentTerm,
 			LeaderID:     n.config.ID,
@@ -296,7 +334,7 @@ func (n *Node) replicate() {
 			PrevLogTerm:  lastLog.Term,
 			LeaderCommit: n.CommitIndex,
 			TargetNode:   nodeID,
-			Entries:      []LogEntry{*entry},
+			Entries:      []LogEntry{entry},
 		}
 	}
 }

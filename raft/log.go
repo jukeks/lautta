@@ -1,31 +1,51 @@
 package lautta
 
-func (n *Node) getLog(idx LogIndex) *LogEntry {
-	for _, entry := range n.Log {
+type Log interface {
+	Add(LogEntry) error
+	Get(idx LogIndex) (LogEntry, error)
+	GetFrom(idx LogIndex) ([]LogEntry, error)
+	GetLastLog() (LogEntry, error)
+	DeleteFrom(idx LogIndex) error
+}
+
+type InMemLog struct {
+	entries []LogEntry
+}
+
+func NewInMemLog() Log {
+	return &InMemLog{entries: []LogEntry{}}
+}
+
+func (l *InMemLog) Get(idx LogIndex) (LogEntry, error) {
+	for _, entry := range l.entries {
 		if entry.Index == idx {
-			return &entry
+			return entry, nil
+		}
+	}
+
+	return LogEntry{}, nil
+}
+
+func (l *InMemLog) DeleteFrom(idx LogIndex) error {
+	for i, entry := range l.entries {
+		if entry.Index == idx {
+			l.entries = l.entries[:i]
+			break
 		}
 	}
 
 	return nil
 }
 
-func (n *Node) deleteFrom(idx LogIndex) {
-	for i, entry := range n.Log {
-		if entry.Index == idx {
-			n.Log = n.Log[:i]
-		}
-	}
+func (l *InMemLog) Add(entry LogEntry) error {
+	l.entries = append(l.entries, entry)
+	return nil
 }
 
-func (n *Node) addEntry(entry LogEntry) {
-	n.Log = append(n.Log, entry)
-}
-
-func (n *Node) getFrom(idx LogIndex) []LogEntry {
+func (l *InMemLog) GetFrom(idx LogIndex) ([]LogEntry, error) {
 	slice := make([]LogEntry, 0)
 	appending := true
-	for _, entry := range n.Log {
+	for _, entry := range l.entries {
 		if entry.Index == idx {
 			appending = true
 		}
@@ -36,5 +56,13 @@ func (n *Node) getFrom(idx LogIndex) []LogEntry {
 		slice = append(slice, entry)
 	}
 
-	return slice
+	return slice, nil
+}
+
+func (l *InMemLog) GetLastLog() (LogEntry, error) {
+	if len(l.entries) == 0 {
+		return LogEntry{}, nil
+	}
+
+	return l.entries[len(l.entries)-1], nil
 }

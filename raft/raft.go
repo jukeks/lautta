@@ -52,7 +52,7 @@ type Node struct {
 	// persisted
 	CurrentTerm TermID
 	VotedFor    *NodeID
-	Log         []LogEntry
+	Log         Log
 
 	// volatile
 	CommitIndex LogIndex
@@ -84,7 +84,7 @@ func NewNode(config Config, comms Comms) *Node {
 
 		CurrentTerm: 0,
 		VotedFor:    nil,
-		Log:         []LogEntry{},
+		Log:         NewInMemLog(),
 
 		CommitIndex: 0,
 		LastApplied: 0,
@@ -101,15 +101,6 @@ func NewNode(config Config, comms Comms) *Node {
 
 		logger: log.New(os.Stderr, "[raft] ", log.Lmicroseconds),
 	}
-}
-
-func (n *Node) getLastLog() LogEntry {
-	lastLog := LogEntry{}
-	if len(n.Log) > 0 {
-		lastLog = n.Log[len(n.Log)-1]
-	}
-
-	return lastLog
 }
 
 func (n *Node) InitializeFromStableStorage() error {
