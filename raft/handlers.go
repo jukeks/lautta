@@ -133,11 +133,12 @@ func (n *Node) getOperationsSorted() []LogIndex {
 
 func (n *Node) checkCommitProgress() {
 	commitIndex := n.getMajorityIndex()
+	n.logger.Printf("checkCommitProgress: majority %d vs leader %d", commitIndex, n.CommitIndex)
 	if commitIndex <= n.CommitIndex {
 		return
 	}
 
-	n.logger.Printf("committed %d", commitIndex)
+	n.logger.Printf("xxxx committed %d", commitIndex)
 
 	n.CommitIndex = commitIndex
 	toDelete := []LogIndex{}

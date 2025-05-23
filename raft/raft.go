@@ -3,6 +3,7 @@ package lautta
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 )
@@ -42,7 +43,7 @@ type LeaderState struct {
 }
 
 const (
-	Tick             = 1000 * time.Millisecond
+	Tick             = 250 * time.Millisecond
 	HeartbeatTimeout = 500 * time.Millisecond
 	ElectionTimeout  = 1 * time.Second
 )
@@ -124,6 +125,8 @@ func (n *Node) Stop() {
 
 func (n *Node) Run() {
 	n.logger.Printf("starting node %d", n.config.ID)
+	// jitter for randomizing startup election
+	<-time.After(time.Duration(rand.Int63n(int64(HeartbeatTimeout))))
 	ticker := time.NewTicker(Tick)
 
 loop:

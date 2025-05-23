@@ -16,6 +16,7 @@ func serve(stop chan bool, node1 NodeID, comms1 Comms, node2 NodeID, comms2 Comm
 		req.Ret = make(chan AppendEntriesResponse, 1)
 		target.AppendEntriesRequestsIn <- req
 		resp := <-req.Ret
+		resp.Request = req
 		origin.AppendEntriesResponsesIn <- resp
 	}
 
@@ -116,6 +117,21 @@ func getCluster() ([]*Node, func()) {
 	return []*Node{node1, node2, node3}, cleanup
 }
 
+func getLeader(cluster []*Node) *Node {
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		time.Sleep(50 * time.Millisecond)
+
+		for _, node := range cluster {
+			if node.State == Leader {
+				return node
+			}
+		}
+	}
+
+	return nil
+}
+
 func TestElection(t *testing.T) {
 	cluster, cleanup := getCluster()
 
@@ -141,4 +157,30 @@ func TestElection(t *testing.T) {
 	if leaders != 1 {
 		t.Errorf("leader count mismatch: %d", leaders)
 	}
+}
+
+func TestPropose(t *testing.T) {
+	cluster, cleanup := getCluster()
+	defer cleanup()
+
+	leader := getLeader(cluster)
+	if leader == nil {
+		t.Fatalf("failed to get leader")
+	}
+
+	ret := make(chan ProposeResponse, 1)
+	leader.comms.ProposeRequestsIn <- ProposeRequest{
+		Payload: []byte("lol"),
+		Ret:     ret,
+	}
+
+	select {
+	case resp := <-ret:
+		if resp.Err != nil {
+			t.Fatalf("failed to propose: %v", resp.Err)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timed out")
+	}
+
 }
