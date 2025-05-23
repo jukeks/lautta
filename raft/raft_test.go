@@ -191,4 +191,10 @@ func TestPropose(t *testing.T) {
 			t.Errorf("leader fsm doesn't contain log")
 		}
 	}
+
+	for _, node := range cluster {
+		if node.CommitIndex != 1 {
+			t.Errorf("commit index not progressed")
+		}
+	}
 }
