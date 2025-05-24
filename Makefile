@@ -11,7 +11,8 @@ test:
 	go test ./...
 
 build:
-	go build -v -o ./bin/node ./cmd/node
+	cd cmd/node && \
+		go build -v -o ../../bin/node ./
 
 run1:
 	./bin/node -config "1=localhost:40050,2=localhost:40051,3=localhost:40052"

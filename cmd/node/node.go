@@ -12,6 +12,7 @@ import (
 	kvv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/kv/v1"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
 	lautta "github.com/jukeks/lautta/raft"
+	tukki "github.com/jukeks/tukki/pkg/db"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -84,6 +85,12 @@ func main() {
 	flag.Parse()
 	cfg := parseConfig(*config)
 
+	db, err := tukki.OpenDatabase("asdf", tukki.GetDefaultConfig())
+	if err != nil {
+		logger.Fatalf("failed to open db")
+	}
+
+	db.Set("lol", "jes")
 	peers := initPeerClients(cfg.Peers)
 	comms := lautta.NewComms()
 
