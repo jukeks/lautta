@@ -15,17 +15,34 @@ func serve(stop chan bool, node1 NodeID, comms1 Comms, node2 NodeID, comms2 Comm
 
 	relayAppendEntriesRequest := func(req AppendEntriesRequest, origin, target Comms) {
 		req.Ret = make(chan AppendEntriesResponse, 1)
-		target.AppendEntriesRequestsIn <- req
-		resp := <-req.Ret
-		resp.Request = req
-		origin.AppendEntriesResponsesIn <- resp
+		select {
+		case target.AppendEntriesRequestsIn <- req:
+		case <-time.After(50 * time.Millisecond):
+			return
+		}
+		select {
+		case resp := <-req.Ret:
+			resp.Request = req
+			origin.AppendEntriesResponsesIn <- resp
+		case <-time.After(50 * time.Millisecond):
+			return
+		}
 	}
 
 	relayRequestVoteRequest := func(req RequestVoteRequest, origin, target Comms) {
 		req.Ret = make(chan RequestVoteResponse, 1)
-		target.RequestVoteRequestsIn <- req
-		resp := <-req.Ret
-		origin.RequestVoteResponsesIn <- resp
+		select {
+		case target.RequestVoteRequestsIn <- req:
+		case <-time.After(50 * time.Millisecond):
+			return
+		}
+
+		select {
+		case resp := <-req.Ret:
+			origin.RequestVoteResponsesIn <- resp
+		case <-time.After(50 * time.Millisecond):
+			return
+		}
 	}
 
 loop:
@@ -133,6 +150,16 @@ func getLeader(cluster []*Node) *Node {
 	return nil
 }
 
+func getFollower(cluster []*Node) *Node {
+	for _, node := range cluster {
+		if node.state == Follower {
+			return node
+		}
+	}
+
+	return nil
+}
+
 func TestElection(t *testing.T) {
 	cluster, _, cleanup := getCluster()
 
@@ -160,6 +187,24 @@ func TestElection(t *testing.T) {
 	}
 }
 
+func propose(t *testing.T, leader Comms, payload []byte) error {
+	ret := make(chan ProposeResponse, 1)
+	leader.ProposeRequestsIn <- ProposeRequest{
+		Payload: payload,
+		Ret:     ret,
+	}
+
+	select {
+	case resp := <-ret:
+		if resp.Err != nil {
+			return resp.Err
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timed out waiting for propose response")
+	}
+	return nil
+}
+
 func TestPropose(t *testing.T) {
 	cluster, fsms, cleanup := getCluster()
 	defer cleanup()
@@ -170,19 +215,8 @@ func TestPropose(t *testing.T) {
 	}
 
 	payload := []byte("test payload")
-	ret := make(chan ProposeResponse, 1)
-	leader.comms.ProposeRequestsIn <- ProposeRequest{
-		Payload: payload,
-		Ret:     ret,
-	}
-
-	select {
-	case resp := <-ret:
-		if resp.Err != nil {
-			t.Fatalf("failed to propose: %v", resp.Err)
-		}
-	case <-time.After(1 * time.Second):
-		t.Fatalf("timed out")
+	if err := propose(t, leader.comms, payload); err != nil {
+		t.Fatalf("failed to propose: %v", err)
 	}
 
 	time.Sleep(50 * time.Millisecond)
@@ -195,6 +229,46 @@ func TestPropose(t *testing.T) {
 	for _, node := range cluster {
 		if node.commitIndex != 1 {
 			t.Errorf("commit index not progressed")
+		}
+	}
+}
+
+func TestReplay(t *testing.T) {
+	cluster, fsms, _ := getCluster()
+
+	leader := getLeader(cluster)
+	if leader == nil {
+		t.Fatalf("failed to get leader")
+	}
+
+	follower := getFollower(cluster)
+	if follower == nil {
+		t.Fatalf("failed to get follower")
+	}
+	follower.Stop()
+
+	payload := []byte("1")
+	if err := propose(t, leader.comms, payload); err != nil {
+		t.Fatalf("failed to propose: %v", err)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	for _, f := range fsms {
+		if f == follower.fsm {
+			// Skip the follower FSM since it is stopped
+			continue
+		}
+
+		if len(f.logs) != 1 || !bytes.Equal(f.logs[0].Payload, payload) {
+			t.Errorf("fsm logs mismatch: got %v, want %v", f.logs, []LogEntry{{Index: 1, Term: 1, Payload: payload}})
+		}
+	}
+
+	go follower.Run()
+	time.Sleep(300 * time.Millisecond)
+	for _, f := range fsms {
+		if len(f.logs) != 1 || !bytes.Equal(f.logs[0].Payload, payload) {
+			t.Errorf("fsm logs mismatch after replay: got %v, want %v", f.logs, []LogEntry{{Index: 1, Term: 1, Payload: payload}})
 		}
 	}
 }

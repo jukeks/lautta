@@ -103,14 +103,15 @@ func firstOr[T any](arr []T, _default T) T {
 }
 
 func (n *Node) getMajorityCount() int {
-	return len(n.config.Peers)/2 + 1
+	nodes := len(n.config.Peers) + 1 // including self
+	return nodes/2 + 1
 }
 
 func (n *Node) getMajorityIndex() LogIndex {
 	majority := n.getMajorityCount()
 	maxIndex := LogIndex(0)
 	for _, indexA := range n.leader.MatchIndex {
-		atleastHere := 0
+		atleastHere := 1 // count self
 		for _, indexB := range n.leader.MatchIndex {
 			if indexA <= indexB {
 				atleastHere++
