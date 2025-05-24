@@ -7,19 +7,19 @@ import (
 	lautta "github.com/jukeks/lautta/raft"
 )
 
-type Client struct {
+type RaftClient struct {
 	peers map[lautta.NodeID]raftv1.RaftServiceClient
 	comms lautta.Comms
 }
 
-func NewClient(peers map[lautta.NodeID]raftv1.RaftServiceClient, comms lautta.Comms) *Client {
-	return &Client{
+func NewRaftClient(peers map[lautta.NodeID]raftv1.RaftServiceClient, comms lautta.Comms) *RaftClient {
+	return &RaftClient{
 		peers: peers,
 		comms: comms,
 	}
 }
 
-func (c *Client) Run() {
+func (c *RaftClient) Run() {
 	for {
 		select {
 		case req := <-c.comms.AppendEntriesRequestsOut:
@@ -30,7 +30,7 @@ func (c *Client) Run() {
 	}
 }
 
-func (c *Client) sendAppendEntriesRequest(node lautta.NodeID, req lautta.AppendEntriesRequest) error {
+func (c *RaftClient) sendAppendEntriesRequest(node lautta.NodeID, req lautta.AppendEntriesRequest) error {
 	peer := c.peers[node]
 
 	go func() {
@@ -65,7 +65,7 @@ func (c *Client) sendAppendEntriesRequest(node lautta.NodeID, req lautta.AppendE
 	return nil
 }
 
-func (c *Client) sendVoteRequest(node lautta.NodeID, req lautta.RequestVoteRequest) error {
+func (c *RaftClient) sendVoteRequest(node lautta.NodeID, req lautta.RequestVoteRequest) error {
 	peer := c.peers[node]
 
 	go func() {

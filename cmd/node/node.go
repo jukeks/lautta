@@ -87,7 +87,7 @@ func main() {
 	peers := initPeerClients(cfg.Peers)
 	comms := lautta.NewComms()
 
-	client := NewClient(peers, comms)
+	client := NewRaftClient(peers, comms)
 	go client.Run()
 
 	fsm := &fsm{}
