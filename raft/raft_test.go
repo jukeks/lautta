@@ -124,7 +124,7 @@ func getLeader(cluster []*Node) *Node {
 		time.Sleep(50 * time.Millisecond)
 
 		for _, node := range cluster {
-			if node.State == Leader {
+			if node.state == Leader {
 				return node
 			}
 		}
@@ -143,7 +143,7 @@ func TestElection(t *testing.T) {
 
 		leaders = 0
 		for _, node := range cluster {
-			if node.State == Leader {
+			if node.state == Leader {
 				leaders++
 			}
 		}
@@ -193,7 +193,7 @@ func TestPropose(t *testing.T) {
 	}
 
 	for _, node := range cluster {
-		if node.CommitIndex != 1 {
+		if node.commitIndex != 1 {
 			t.Errorf("commit index not progressed")
 		}
 	}

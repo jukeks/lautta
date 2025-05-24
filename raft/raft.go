@@ -52,28 +52,28 @@ type Node struct {
 	config Config
 
 	// persisted
-	CurrentTerm TermID
-	VotedFor    *NodeID
+	currentTerm TermID
+	votedFor    *NodeID
 	logStore    LogStore
 	stableStore StableStore
 
 	// volatile
-	CommitIndex LogIndex
-	LastApplied LogIndex
+	commitIndex LogIndex
+	lastApplied LogIndex
 
-	LastHeartbeat         time.Time
-	LastElection          time.Time
+	lastHeartbeat         time.Time
+	lastElection          time.Time
 	votes                 int
 	voteResponsesReceived int
 
-	State NodeState
+	state NodeState
 
-	Leader *LeaderState
+	leader *LeaderState
 
 	ongoingOperations map[LogIndex]ProposeRequest
 
-	Quit chan bool
-	Done chan bool
+	quit chan bool
+	done chan bool
 
 	logger *log.Logger
 
@@ -88,23 +88,23 @@ func NewNode(config Config, comms Comms, fsm FSM, logStore LogStore, stableStore
 		config: config,
 		comms:  comms,
 
-		CurrentTerm: 0,
-		VotedFor:    nil,
+		currentTerm: 0,
+		votedFor:    nil,
 		logStore:    NewLastLogCache(logStore),
 		stableStore: stableStore,
 
-		CommitIndex: 0,
-		LastApplied: 0,
+		commitIndex: 0,
+		lastApplied: 0,
 
-		State:  Follower,
-		Leader: nil,
+		state:  Follower,
+		leader: nil,
 
-		LastHeartbeat: time.Now(),
+		lastHeartbeat: time.Now(),
 
 		ongoingOperations: make(map[LogIndex]ProposeRequest),
 
-		Quit: make(chan bool, 1),
-		Done: make(chan bool, 1),
+		quit: make(chan bool, 1),
+		done: make(chan bool, 1),
 
 		logger: log.New(os.Stderr, prefix, 0),
 
@@ -113,14 +113,14 @@ func NewNode(config Config, comms Comms, fsm FSM, logStore LogStore, stableStore
 }
 
 func (n *Node) Stop() {
-	n.Quit <- true
-	<-n.Done
+	n.quit <- true
+	<-n.done
 }
 
 func (n *Node) Run() {
 	n.logger.Printf("starting node %d", n.config.ID)
 	var err error
-	n.CurrentTerm, n.VotedFor, err = n.stableStore.Restore()
+	n.currentTerm, n.votedFor, err = n.stableStore.Restore()
 	if err != nil {
 		n.logger.Fatalf("failed to restore from stable store: %v", err)
 	}
@@ -150,11 +150,11 @@ loop:
 		case proposeReq := <-n.comms.ProposeRequestsIn:
 			n.handleProposeRequest(proposeReq)
 
-		case <-n.Quit:
+		case <-n.quit:
 			n.logger.Println("quitting")
 			break loop
 		}
 	}
 
-	n.Done <- true
+	n.done <- true
 }
