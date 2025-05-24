@@ -90,7 +90,7 @@ func NewNode(config Config, comms Comms, fsm FSM, logStore LogStore, stableStore
 
 		CurrentTerm: 0,
 		VotedFor:    nil,
-		logStore:    logStore,
+		logStore:    NewLastLogCache(logStore),
 		stableStore: stableStore,
 
 		CommitIndex: 0,

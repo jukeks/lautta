@@ -13,7 +13,7 @@ type InMemLog struct {
 	entries []LogEntry
 }
 
-func NewInMemLog() LogStore {
+func NewInMemLogStore() LogStore {
 	return &InMemLog{entries: []LogEntry{}}
 }
 
