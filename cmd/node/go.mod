@@ -6,7 +6,7 @@ replace github.com/jukeks/lautta => ../../
 
 require (
 	github.com/jukeks/lautta v0.0.0-00010101000000-000000000000
-	github.com/jukeks/tukki v0.0.0-20250524143744-5165f7f8a720
+	github.com/jukeks/tukki v0.0.0-20250524183204-016ccef731c5
 	google.golang.org/grpc v1.72.1
 )
 

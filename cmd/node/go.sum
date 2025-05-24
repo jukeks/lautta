@@ -18,6 +18,8 @@ github.com/jukeks/tukki v0.0.0-20250524140736-e0798b4430d6 h1:c8tSIVNsCPyqDF27nW
 github.com/jukeks/tukki v0.0.0-20250524140736-e0798b4430d6/go.mod h1:X4eIND8pp0oSCKpI8liR3JKT/M32JFxN3zf53Ad5Ei4=
 github.com/jukeks/tukki v0.0.0-20250524143744-5165f7f8a720 h1:ez/7BYSDn/So/HiuLOFZcBRazmg0im95MyR9iTLpl8w=
 github.com/jukeks/tukki v0.0.0-20250524143744-5165f7f8a720/go.mod h1:X4eIND8pp0oSCKpI8liR3JKT/M32JFxN3zf53Ad5Ei4=
+github.com/jukeks/tukki v0.0.0-20250524183204-016ccef731c5 h1:Cc8C6gGf2YoIx9cAjj81rudJjL7CIO47LYsHN2R2rzI=
+github.com/jukeks/tukki v0.0.0-20250524183204-016ccef731c5/go.mod h1:X4eIND8pp0oSCKpI8liR3JKT/M32JFxN3zf53Ad5Ei4=
 github.com/thanhpk/randstr v1.0.6 h1:psAOktJFD4vV9NEVb3qkhRSMvYh4ORRaj1+w/hn4B+o=
 github.com/thanhpk/randstr v1.0.6/go.mod h1:M/H2P1eNLZzlDwAzpkkkUvoyNNMbzRGhESZuEQk3r0U=
 github.com/twmb/murmur3 v1.1.6 h1:mqrRot1BRxm+Yct+vavLMou2/iJt0tNVTTC0QoIjaZg=

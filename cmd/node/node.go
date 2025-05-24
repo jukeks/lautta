@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -12,13 +11,14 @@ import (
 	kvv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/kv/v1"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
 	lautta "github.com/jukeks/lautta/raft"
-	tukki "github.com/jukeks/tukki/pkg/db"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
 	config = flag.String("config", "", "config")
+	inMem  = flag.Bool("in-mem", false, "use in-memory log and stable store")
+	dbDir  = flag.String("db-dir", "", "directory for raft state")
 
 	logger = log.New(os.Stderr, "[server] ", log.Lmicroseconds)
 )
@@ -83,14 +83,12 @@ func (f *fsm) Apply(log lautta.LogEntry) error {
 
 func main() {
 	flag.Parse()
-	cfg := parseConfig(*config)
 
-	db, err := tukki.OpenDatabase("asdf", tukki.GetDefaultConfig())
-	if err != nil {
-		logger.Fatalf("failed to open db")
+	if !*inMem && *dbDir == "" {
+		logger.Fatal("db-dir is required when not using in-memory log and stable store")
 	}
 
-	db.Set("lol", "jes")
+	cfg := parseConfig(*config)
 	peers := initPeerClients(cfg.Peers)
 	comms := lautta.NewComms()
 
@@ -98,14 +96,24 @@ func main() {
 	go client.Run()
 
 	fsm := &fsm{}
-	lauttaNode := lautta.NewNode(cfg, comms, fsm,
-		lautta.NewInMemLog(), lautta.NewInMemStableStore())
+	logStore := lautta.NewInMemLog()
+	stableStore := lautta.NewInMemStableStore()
+	if !*inMem {
+		store, err := NewTukkiStore(*dbDir)
+		if err != nil {
+			logger.Fatalf("failed to create tukki store: %v", err)
+		}
+		logStore = store
+		stableStore = store
+		logger.Printf("using tukki store at %s", *dbDir)
+	}
+	lauttaNode := lautta.NewNode(cfg, comms, fsm, logStore, stableStore)
 	go lauttaNode.Run()
 	defer lauttaNode.Stop()
 
 	raftServer := NewRaftServer(comms)
 
-	ls, err := net.Listen("tcp", fmt.Sprintf(cfg.Address))
+	ls, err := net.Listen("tcp", cfg.Address)
 	if err != nil {
 		logger.Fatalf("failed to listen: %v", err)
 	}
