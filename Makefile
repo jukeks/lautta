@@ -11,16 +11,16 @@ test:
 	go test ./...
 
 build:
-	go build -v -o ./bin/server ./cmd/server
+	go build -v -o ./bin/node ./cmd/node
 
 run1:
-	./bin/server -config "1=localhost:40050,2=localhost:40051,3=localhost:40052"
+	./bin/node -config "1=localhost:40050,2=localhost:40051,3=localhost:40052"
 
 run2:
-	./bin/server -config "2=localhost:40051,1=localhost:40050,3=localhost:40052"
+	./bin/node -config "2=localhost:40051,1=localhost:40050,3=localhost:40052"
 
 run3:
-	./bin/server -config "3=localhost:40052,1=localhost:40050,2=localhost:40051"
+	./bin/node -config "3=localhost:40052,1=localhost:40050,2=localhost:40051"
 
 format:
 	go fmt ./...
