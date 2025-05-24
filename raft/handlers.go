@@ -8,15 +8,15 @@ import (
 )
 
 func (n *Node) handleTick() {
-	if n.State == Follower && time.Since(n.LastHeartbeat) > HeartbeatTimeout {
+	if n.state == Follower && time.Since(n.lastHeartbeat) > HeartbeatTimeout {
 		n.logger.Println("starting elections")
 		n.startElection()
 	}
-	if n.State == Candidate && time.Since(n.LastElection) > ElectionTimeout {
+	if n.state == Candidate && time.Since(n.lastElection) > ElectionTimeout {
 		n.logger.Println("Ending elections with timeout")
 		n.handleElectionResults()
 	}
-	if n.State == Leader {
+	if n.state == Leader {
 		n.sendHeartbeats()
 	}
 }
@@ -24,15 +24,15 @@ func (n *Node) handleTick() {
 func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 	n.logger.Printf("append entries req: %+v", req)
 
-	if req.Term > n.CurrentTerm {
-		n.CurrentTerm = req.Term
-		n.VotedFor = nil
-		n.State = Follower
+	if req.Term > n.currentTerm {
+		n.currentTerm = req.Term
+		n.votedFor = nil
+		n.state = Follower
 	}
 
 	n.logger.Printf("got %d entries", len(req.Entries))
 
-	olderTerm := req.Term < n.CurrentTerm
+	olderTerm := req.Term < n.currentTerm
 	for _, newEntry := range req.Entries {
 		existingEntry, err := n.logStore.Get(newEntry.Index)
 		if err != nil {
@@ -63,15 +63,15 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 		prevLogMismatch = false
 	}
 
-	if req.LeaderCommit > n.CommitIndex {
+	if req.LeaderCommit > n.commitIndex {
 		lastLog, err := n.logStore.GetLastLog()
 		if err != nil {
 			n.logger.Fatalf("failed to read log: %v", err)
 		}
 
-		prevCommit := n.CommitIndex
-		n.CommitIndex = min(lastLog.Index, req.LeaderCommit)
-		logs, err := n.logStore.GetBetween(prevCommit+1, n.CommitIndex)
+		prevCommit := n.commitIndex
+		n.commitIndex = min(lastLog.Index, req.LeaderCommit)
+		logs, err := n.logStore.GetBetween(prevCommit+1, n.commitIndex)
 		if err != nil {
 			n.logger.Fatalf("failed to read log: %v", err)
 		}
@@ -83,15 +83,15 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 		}
 	}
 
-	if err := n.stableStore.Store(n.CurrentTerm, n.VotedFor); err != nil {
+	if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
 		n.logger.Fatalf("failed to store state: %v", err)
 	}
 
 	req.Ret <- AppendEntriesResponse{
-		Term:    n.CurrentTerm,
+		Term:    n.currentTerm,
 		Success: !olderTerm && !prevLogMismatch,
 	}
-	n.LastHeartbeat = time.Now()
+	n.lastHeartbeat = time.Now()
 }
 
 func firstOr[T any](arr []T, _default T) T {
@@ -109,9 +109,9 @@ func (n *Node) getMajorityCount() int {
 func (n *Node) getMajorityIndex() LogIndex {
 	majority := n.getMajorityCount()
 	maxIndex := LogIndex(0)
-	for _, indexA := range n.Leader.MatchIndex {
+	for _, indexA := range n.leader.MatchIndex {
 		atleastHere := 0
-		for _, indexB := range n.Leader.MatchIndex {
+		for _, indexB := range n.leader.MatchIndex {
 			if indexA <= indexB {
 				atleastHere++
 			}
@@ -137,14 +137,14 @@ func (n *Node) getOperationsSorted() []LogIndex {
 
 func (n *Node) checkCommitProgress() {
 	commitIndex := n.getMajorityIndex()
-	n.logger.Printf("checkCommitProgress: majority %d vs leader %d", commitIndex, n.CommitIndex)
-	if commitIndex <= n.CommitIndex {
+	n.logger.Printf("checkCommitProgress: majority %d vs leader %d", commitIndex, n.commitIndex)
+	if commitIndex <= n.commitIndex {
 		return
 	}
 
 	n.logger.Printf("committed %d", commitIndex)
 
-	n.CommitIndex = commitIndex
+	n.commitIndex = commitIndex
 	toDelete := []LogIndex{}
 	for _, idx := range n.getOperationsSorted() {
 		req := n.ongoingOperations[idx]
@@ -175,8 +175,8 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 	peer := req.TargetNode
 
 	if resp.Success {
-		n.Leader.MatchIndex[peer] = req.PrevLogIndex
-		n.Leader.NextIndex[peer] = req.PrevLogIndex + 1
+		n.leader.MatchIndex[peer] = req.PrevLogIndex
+		n.leader.NextIndex[peer] = req.PrevLogIndex + 1
 		n.checkCommitProgress()
 		return
 	}
@@ -194,44 +194,44 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 	}
 
 	n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
-		Term:         n.CurrentTerm,
+		Term:         n.currentTerm,
 		LeaderID:     n.config.ID,
 		PrevLogIndex: lastLog.Index,
 		PrevLogTerm:  lastLog.Term,
-		LeaderCommit: n.CommitIndex,
+		LeaderCommit: n.commitIndex,
 		TargetNode:   peer,
 		Entries:      entries,
 	}
 }
 
 func (n *Node) handleVoteRequest(req RequestVoteRequest) {
-	if req.Term > n.CurrentTerm {
-		n.CurrentTerm = req.Term
-		n.VotedFor = nil
-		n.State = Follower // TODO check
+	if req.Term > n.currentTerm {
+		n.currentTerm = req.Term
+		n.votedFor = nil
+		n.state = Follower // TODO check
 	}
 
-	olderTerm := req.Term < n.CurrentTerm
+	olderTerm := req.Term < n.currentTerm
 	lastLog, err := n.logStore.GetLastLog()
 	if err != nil {
 		n.logger.Fatalf("failed to read log: %v", err)
 	}
 
 	olderIndex := lastLog.Index > req.LastLogIndex
-	canVote := n.VotedFor == nil || *n.VotedFor == req.CandidateID
+	canVote := n.votedFor == nil || *n.votedFor == req.CandidateID
 	voteGranted := !olderTerm && !olderIndex && canVote
 
 	if voteGranted {
 		votedFor := req.CandidateID
-		n.VotedFor = &votedFor
+		n.votedFor = &votedFor
 	}
 
-	if err := n.stableStore.Store(n.CurrentTerm, n.VotedFor); err != nil {
+	if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
 		n.logger.Fatalf("failed to store state: %v", err)
 	}
 
 	resp := RequestVoteResponse{
-		Term:        n.CurrentTerm,
+		Term:        n.currentTerm,
 		VoteGranted: voteGranted,
 	}
 
@@ -241,21 +241,21 @@ func (n *Node) handleVoteRequest(req RequestVoteRequest) {
 
 func (n *Node) handleVoteResponse(resp RequestVoteResponse) {
 	n.logger.Printf("vote response: %+v", resp)
-	if n.State != Candidate {
+	if n.state != Candidate {
 		n.logger.Printf("got vote response but not a candidate")
 		return
 	}
 	n.voteResponsesReceived += 1
-	if resp.Term > n.CurrentTerm {
-		n.CurrentTerm = resp.Term
-		n.VotedFor = nil
-		n.State = Follower
+	if resp.Term > n.currentTerm {
+		n.currentTerm = resp.Term
+		n.votedFor = nil
+		n.state = Follower
 	}
 	if resp.VoteGranted {
 		n.votes += 1
 	}
 
-	if err := n.stableStore.Store(n.CurrentTerm, n.VotedFor); err != nil {
+	if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
 		n.logger.Fatalf("failed to store state: %v", err)
 	}
 
@@ -269,37 +269,37 @@ func (n *Node) handleElectionResults() {
 	nNodes := len(n.config.Peers) + 1
 	if n.votes >= (nNodes/2)+1 {
 		n.logger.Printf("node %d won election", n.config.ID)
-		n.State = Leader
+		n.state = Leader
 
 		lastLog, err := n.logStore.GetLastLog()
 		if err != nil {
 			n.logger.Fatalf("failed to read log: %v", err)
 		}
 
-		n.Leader = &LeaderState{
+		n.leader = &LeaderState{
 			NextIndex:  make(map[NodeID]LogIndex),
 			MatchIndex: make(map[NodeID]LogIndex),
 		}
 		for _, peer := range n.config.Peers {
-			n.Leader.NextIndex[peer.ID] = lastLog.Index + 1
-			n.Leader.MatchIndex[peer.ID] = 0
+			n.leader.NextIndex[peer.ID] = lastLog.Index + 1
+			n.leader.MatchIndex[peer.ID] = 0
 		}
 
 		n.sendHeartbeats()
 	} else {
 		n.logger.Printf("lost election")
-		n.State = Follower
+		n.state = Follower
 		// add jitter to prevent stalemate
-		n.LastHeartbeat = time.Now().Add(time.Duration(rand.Int63n(int64(HeartbeatTimeout * 2))))
+		n.lastHeartbeat = time.Now().Add(time.Duration(rand.Int63n(int64(HeartbeatTimeout * 2))))
 	}
 }
 
 func (n *Node) startElection() {
-	n.State = Candidate
-	n.LastElection = time.Now()
-	n.CurrentTerm++
+	n.state = Candidate
+	n.lastElection = time.Now()
+	n.currentTerm++
 	votedFor := n.config.ID
-	n.VotedFor = &votedFor
+	n.votedFor = &votedFor
 	n.votes = 1
 	n.voteResponsesReceived = 0
 
@@ -308,13 +308,13 @@ func (n *Node) startElection() {
 		n.logger.Fatalf("failed to read log: %v", err)
 	}
 
-	if err := n.stableStore.Store(n.CurrentTerm, n.VotedFor); err != nil {
+	if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
 		n.logger.Fatalf("failed to store state: %v", err)
 	}
 
 	for _, peer := range n.config.Peers {
 		n.comms.RequestVoteRequestsOut <- RequestVoteRequest{
-			Term:         n.CurrentTerm,
+			Term:         n.currentTerm,
 			CandidateID:  n.config.ID,
 			LastLogIndex: lastLog.Index,
 			LastLogTerm:  lastLog.Term,
@@ -331,11 +331,11 @@ func (n *Node) sendHeartbeats() {
 
 	for _, peer := range n.config.Peers {
 		n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
-			Term:         n.CurrentTerm,
+			Term:         n.currentTerm,
 			LeaderID:     n.config.ID,
 			PrevLogIndex: lastLog.Index,
 			PrevLogTerm:  lastLog.Term,
-			LeaderCommit: n.CommitIndex,
+			LeaderCommit: n.commitIndex,
 			TargetNode:   peer.ID,
 		}
 	}
@@ -343,7 +343,7 @@ func (n *Node) sendHeartbeats() {
 
 func (n *Node) handleProposeRequest(req ProposeRequest) {
 	n.logger.Printf("got write request: %+v. %s", req, req.Payload)
-	if n.State != Leader {
+	if n.state != Leader {
 		req.Ret <- ProposeResponse{
 			Err: errors.New("not a leader"),
 		}
@@ -356,7 +356,7 @@ func (n *Node) handleProposeRequest(req ProposeRequest) {
 	}
 
 	entry := LogEntry{
-		Term:    n.CurrentTerm,
+		Term:    n.currentTerm,
 		Index:   lastLog.Index + 1,
 		Payload: req.Payload,
 	}
@@ -375,18 +375,18 @@ func (n *Node) replicate() {
 		n.logger.Fatalf("failed to read log: %v", err)
 	}
 
-	for nodeID, nextIndex := range n.Leader.NextIndex {
+	for nodeID, nextIndex := range n.leader.NextIndex {
 		entry, err := n.logStore.Get(nextIndex)
 		if err != nil {
 			n.logger.Fatalf("failed to read log: %v", err)
 		}
 
 		n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
-			Term:         n.CurrentTerm,
+			Term:         n.currentTerm,
 			LeaderID:     n.config.ID,
 			PrevLogIndex: lastLog.Index,
 			PrevLogTerm:  lastLog.Term,
-			LeaderCommit: n.CommitIndex,
+			LeaderCommit: n.commitIndex,
 			TargetNode:   nodeID,
 			Entries:      []LogEntry{entry},
 		}
