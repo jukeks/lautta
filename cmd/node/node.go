@@ -96,7 +96,7 @@ func main() {
 	go client.Run()
 
 	fsm := &fsm{}
-	logStore := lautta.NewInMemLog()
+	logStore := lautta.NewInMemLogStore()
 	stableStore := lautta.NewInMemStableStore()
 	if !*inMem {
 		store, err := NewTukkiStore(*dbDir)

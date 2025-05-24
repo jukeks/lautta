@@ -360,7 +360,10 @@ func (n *Node) handleProposeRequest(req ProposeRequest) {
 		Index:   lastLog.Index + 1,
 		Payload: req.Payload,
 	}
-	n.logStore.Add(entry)
+
+	if err := n.logStore.Add(entry); err != nil {
+		n.logger.Fatalf("failed to add log entry: %v", err)
+	}
 	n.ongoingOperations[entry.Index] = req
 
 	n.replicate()
