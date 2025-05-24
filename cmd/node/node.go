@@ -91,7 +91,8 @@ func main() {
 	go client.Run()
 
 	fsm := &fsm{}
-	lauttaNode := lautta.NewNode(cfg, comms, fsm)
+	lauttaNode := lautta.NewNode(cfg, comms, fsm,
+		lautta.NewInMemLog(), lautta.NewInMemStableStore())
 	go lauttaNode.Run()
 	defer lauttaNode.Stop()
 

@@ -54,7 +54,8 @@ type Node struct {
 	// persisted
 	CurrentTerm TermID
 	VotedFor    *NodeID
-	Log         Log
+	logStore    LogStore
+	stableStore StableStore
 
 	// volatile
 	CommitIndex LogIndex
@@ -81,7 +82,7 @@ type Node struct {
 	fsm FSM
 }
 
-func NewNode(config Config, comms Comms, fsm FSM) *Node {
+func NewNode(config Config, comms Comms, fsm FSM, logStore LogStore, stableStore StableStore) *Node {
 	prefix := fmt.Sprintf("[node %d] ", config.ID)
 	return &Node{
 		config: config,
@@ -89,7 +90,8 @@ func NewNode(config Config, comms Comms, fsm FSM) *Node {
 
 		CurrentTerm: 0,
 		VotedFor:    nil,
-		Log:         NewInMemLog(),
+		logStore:    logStore,
+		stableStore: stableStore,
 
 		CommitIndex: 0,
 		LastApplied: 0,
@@ -110,14 +112,6 @@ func NewNode(config Config, comms Comms, fsm FSM) *Node {
 	}
 }
 
-func (n *Node) InitializeFromStableStorage() error {
-	return nil
-}
-
-func (n *Node) StoreState() error {
-	return nil
-}
-
 func (n *Node) Stop() {
 	n.Quit <- true
 	<-n.Done
@@ -125,6 +119,12 @@ func (n *Node) Stop() {
 
 func (n *Node) Run() {
 	n.logger.Printf("starting node %d", n.config.ID)
+	var err error
+	n.CurrentTerm, n.VotedFor, err = n.stableStore.Restore()
+	if err != nil {
+		n.logger.Fatalf("failed to restore from stable store: %v", err)
+	}
+
 	// jitter for randomizing startup election
 	<-time.After(time.Duration(rand.Int63n(int64(HeartbeatTimeout))))
 	ticker := time.NewTicker(Tick)

@@ -1,6 +1,6 @@
 package lautta
 
-type Log interface {
+type LogStore interface {
 	Add(LogEntry) error
 	Get(idx LogIndex) (LogEntry, error)
 	GetFrom(idx LogIndex) ([]LogEntry, error)
@@ -13,7 +13,7 @@ type InMemLog struct {
 	entries []LogEntry
 }
 
-func NewInMemLog() Log {
+func NewInMemLog() LogStore {
 	return &InMemLog{entries: []LogEntry{}}
 }
 

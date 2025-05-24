@@ -100,9 +100,9 @@ func getCluster() ([]*Node, []*fsm, func()) {
 	fsm2 := &fsm{}
 	fsm3 := &fsm{}
 
-	node1 := NewNode(config1, comms1, fsm1)
-	node2 := NewNode(config2, comms2, fsm2)
-	node3 := NewNode(config3, comms3, fsm3)
+	node1 := NewNode(config1, comms1, fsm1, NewInMemLog(), NewInMemStableStore())
+	node2 := NewNode(config2, comms2, fsm2, NewInMemLog(), NewInMemStableStore())
+	node3 := NewNode(config3, comms3, fsm3, NewInMemLog(), NewInMemStableStore())
 
 	go node1.Run()
 	go node2.Run()
