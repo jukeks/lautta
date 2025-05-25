@@ -19,6 +19,10 @@ func NewRaftClient(peers map[lautta.NodeID]raftv1.RaftServiceClient, comms lautt
 	}
 }
 
+func (c *RaftClient) Start() {
+	go c.Run()
+}
+
 func (c *RaftClient) Run() {
 	for {
 		select {
