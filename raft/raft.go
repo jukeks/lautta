@@ -117,6 +117,10 @@ func (n *Node) Stop() {
 	<-n.done
 }
 
+func (n *Node) Start() {
+	go n.Run()
+}
+
 func (n *Node) Run() {
 	n.logger.Printf("starting node %d", n.config.ID)
 	var err error

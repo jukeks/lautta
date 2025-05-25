@@ -2,6 +2,7 @@ package lautta
 
 import (
 	"bytes"
+	"slices"
 	"testing"
 	"time"
 )
@@ -81,7 +82,7 @@ func (f *fsm) Apply(log LogEntry) error {
 	return nil
 }
 
-func getCluster() ([]*Node, []*fsm, func()) {
+func getCluster() (Cluster, func()) {
 	comms1 := NewComms()
 	comms2 := NewComms()
 	comms3 := NewComms()
@@ -121,9 +122,9 @@ func getCluster() ([]*Node, []*fsm, func()) {
 	node2 := NewNode(config2, comms2, fsm2, NewInMemLogStore(), NewInMemStableStore())
 	node3 := NewNode(config3, comms3, fsm3, NewInMemLogStore(), NewInMemStableStore())
 
-	go node1.Run()
-	go node2.Run()
-	go node3.Run()
+	node1.Start()
+	node2.Start()
+	node3.Start()
 
 	cleanup := func() {
 		node1.Stop()
@@ -132,28 +133,34 @@ func getCluster() ([]*Node, []*fsm, func()) {
 		stop <- true
 	}
 
-	return []*Node{node1, node2, node3}, []*fsm{fsm1, fsm2, fsm3}, cleanup
+	nodes := []*NodeFSM{
+		{Node: node1, FSM: fsm1},
+		{Node: node2, FSM: fsm2},
+		{Node: node3, FSM: fsm3},
+	}
+
+	return Cluster{Members: nodes}, cleanup
 }
 
-func getLeader(cluster []*Node) *Node {
+func getLeader(cluster Cluster) *NodeFSM {
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
-		time.Sleep(50 * time.Millisecond)
-
-		for _, node := range cluster {
-			if node.state == Leader {
-				return node
+		for _, member := range cluster.Members {
+			if member.Node.state == Leader {
+				return member
 			}
 		}
+
+		time.Sleep(1 * time.Millisecond)
 	}
 
 	return nil
 }
 
-func getFollower(cluster []*Node) *Node {
-	for _, node := range cluster {
-		if node.state == Follower {
-			return node
+func getFollower(cluster Cluster) *NodeFSM {
+	for _, member := range cluster.Members {
+		if member.Node.state == Follower {
+			return member
 		}
 	}
 
@@ -161,7 +168,7 @@ func getFollower(cluster []*Node) *Node {
 }
 
 func TestElection(t *testing.T) {
-	cluster, _, cleanup := getCluster()
+	cluster, cleanup := getCluster()
 
 	leaders := 0
 	deadline := time.Now().Add(10 * time.Second)
@@ -169,8 +176,8 @@ func TestElection(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 
 		leaders = 0
-		for _, node := range cluster {
-			if node.state == Leader {
+		for _, member := range cluster.Members {
+			if member.Node.state == Leader {
 				leaders++
 			}
 		}
@@ -205,8 +212,44 @@ func propose(t *testing.T, leader Comms, payload []byte) error {
 	return nil
 }
 
+type NodeFSM struct {
+	Node *Node
+	FSM  *fsm
+}
+
+type Cluster struct {
+	Members []*NodeFSM
+}
+
+func ensurePropagation(t *testing.T, skip []NodeID, cluster Cluster, payload []byte) {
+	deadline := time.Now().Add(1 * time.Second)
+	for time.Now().Before(deadline) {
+		found := 0
+		for _, member := range cluster.Members {
+			if slices.Contains(skip, member.Node.config.ID) {
+				continue
+			}
+
+			for _, log := range member.FSM.logs {
+				if bytes.Equal(log.Payload, payload) {
+					found++
+					break
+				}
+			}
+		}
+
+		if found == len(cluster.Members)-len(skip) {
+			return
+		}
+
+		time.Sleep(1 * time.Millisecond)
+	}
+
+	t.Fatalf("failed to propagate log entry with payload %s", payload)
+}
+
 func TestPropose(t *testing.T) {
-	cluster, fsms, cleanup := getCluster()
+	cluster, cleanup := getCluster()
 	defer cleanup()
 
 	leader := getLeader(cluster)
@@ -215,26 +258,21 @@ func TestPropose(t *testing.T) {
 	}
 
 	payload := []byte("test payload")
-	if err := propose(t, leader.comms, payload); err != nil {
+	if err := propose(t, leader.Node.comms, payload); err != nil {
 		t.Fatalf("failed to propose: %v", err)
 	}
 
-	time.Sleep(50 * time.Millisecond)
-	for _, f := range fsms {
-		if !bytes.Equal(f.logs[0].Payload, payload) {
-			t.Errorf("leader fsm doesn't contain log")
-		}
-	}
+	ensurePropagation(t, nil, cluster, payload)
 
-	for _, node := range cluster {
-		if node.commitIndex != 1 {
+	for _, member := range cluster.Members {
+		if member.Node.commitIndex != 1 {
 			t.Errorf("commit index not progressed")
 		}
 	}
 }
 
 func TestReplay(t *testing.T) {
-	cluster, fsms, _ := getCluster()
+	cluster, _ := getCluster()
 
 	leader := getLeader(cluster)
 	if leader == nil {
@@ -245,30 +283,16 @@ func TestReplay(t *testing.T) {
 	if follower == nil {
 		t.Fatalf("failed to get follower")
 	}
-	follower.Stop()
+	follower.Node.Stop()
 
 	payload := []byte("1")
-	if err := propose(t, leader.comms, payload); err != nil {
+	if err := propose(t, leader.Node.comms, payload); err != nil {
 		t.Fatalf("failed to propose: %v", err)
 	}
 
-	time.Sleep(50 * time.Millisecond)
-	for _, f := range fsms {
-		if f == follower.fsm {
-			// Skip the follower FSM since it is stopped
-			continue
-		}
+	ensurePropagation(t, []NodeID{follower.Node.config.ID}, cluster, payload)
 
-		if len(f.logs) != 1 || !bytes.Equal(f.logs[0].Payload, payload) {
-			t.Errorf("fsm logs mismatch: got %v, want %v", f.logs, []LogEntry{{Index: 1, Term: 1, Payload: payload}})
-		}
-	}
-
-	go follower.Run()
-	time.Sleep(300 * time.Millisecond)
-	for _, f := range fsms {
-		if len(f.logs) != 1 || !bytes.Equal(f.logs[0].Payload, payload) {
-			t.Errorf("fsm logs mismatch after replay: got %v, want %v", f.logs, []LogEntry{{Index: 1, Term: 1, Payload: payload}})
-		}
-	}
+	follower.Node.Start()
+	// follower should catch up with the leader
+	ensurePropagation(t, nil, cluster, payload)
 }
