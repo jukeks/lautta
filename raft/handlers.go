@@ -37,10 +37,12 @@ func (n *Node) handleNewerTerm(newTerm TermID) {
 	if wasLeader {
 		n.leader = nil
 		// cancel ongoing operations
-		n.logger.Println("canceling ongoing operations due to newer term")
-		for _, req := range n.ongoingOperations {
-			req.Ret <- ProposeResponse{
-				Err: errors.New("leader changed"),
+		if len(n.ongoingOperations) > 0 {
+			n.logger.Println("canceling ongoing operations due to newer term")
+			for _, req := range n.ongoingOperations {
+				req.Ret <- ProposeResponse{
+					Err: errors.New("leader changed"),
+				}
 			}
 		}
 	}
@@ -261,6 +263,9 @@ func (n *Node) handleVoteRequest(req RequestVoteRequest) {
 		votedFor := req.CandidateID
 		n.votedFor = &votedFor
 	}
+
+	// otherwise we would start a new election before the current one is done
+	n.lastHeartbeat = time.Now()
 
 	if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
 		n.logger.Fatalf("failed to store state: %v", err)

@@ -82,7 +82,7 @@ func (f *fsm) Apply(log LogEntry) error {
 	return nil
 }
 
-func getCluster() (Cluster, func()) {
+func getCluster(started bool) (Cluster, func()) {
 	comms1 := NewComms()
 	comms2 := NewComms()
 	comms3 := NewComms()
@@ -122,9 +122,11 @@ func getCluster() (Cluster, func()) {
 	node2 := NewNode(config2, comms2, fsm2, NewInMemLogStore(), NewInMemStableStore())
 	node3 := NewNode(config3, comms3, fsm3, NewInMemLogStore(), NewInMemStableStore())
 
-	node1.Start()
-	node2.Start()
-	node3.Start()
+	if started {
+		node1.Start()
+		node2.Start()
+		node3.Start()
+	}
 
 	cleanup := func() {
 		node1.Stop()
@@ -168,7 +170,7 @@ func getFollower(cluster Cluster) *NodeFSM {
 }
 
 func TestElection(t *testing.T) {
-	cluster, cleanup := getCluster()
+	cluster, cleanup := getCluster(true)
 
 	leaders := 0
 	deadline := time.Now().Add(10 * time.Second)
@@ -249,7 +251,7 @@ func ensurePropagation(t *testing.T, skip []NodeID, cluster Cluster, payload []b
 }
 
 func TestPropose(t *testing.T) {
-	cluster, cleanup := getCluster()
+	cluster, cleanup := getCluster(true)
 	defer cleanup()
 
 	leader := getLeader(cluster)
@@ -272,7 +274,7 @@ func TestPropose(t *testing.T) {
 }
 
 func TestReplay(t *testing.T) {
-	cluster, _ := getCluster()
+	cluster, _ := getCluster(true)
 
 	leader := getLeader(cluster)
 	if leader == nil {
@@ -295,4 +297,16 @@ func TestReplay(t *testing.T) {
 	follower.Node.Start()
 	// follower should catch up with the leader
 	ensurePropagation(t, nil, cluster, payload)
+}
+
+func TestElectionWithMajority(t *testing.T) {
+	cluster, _ := getCluster(false)
+
+	cluster.Members[0].Node.Start()
+	cluster.Members[1].Node.Start()
+
+	leader := getLeader(cluster)
+	if leader == nil {
+		t.Fatalf("failed to get leader")
+	}
 }

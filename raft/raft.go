@@ -56,9 +56,9 @@ type LeaderState struct {
 }
 
 const (
-	Tick             = 250 * time.Millisecond
+	TickDuration     = 50 * time.Millisecond
 	HeartbeatTimeout = 500 * time.Millisecond
-	ElectionTimeout  = 1 * time.Second
+	ElectionTimeout  = 250 * time.Millisecond
 )
 
 type Node struct {
@@ -119,7 +119,7 @@ func NewNode(config Config, comms Comms, fsm FSM, logStore LogStore, stableStore
 		quit: make(chan bool, 1),
 		done: make(chan bool, 1),
 
-		logger: log.New(os.Stderr, prefix, 0),
+		logger: log.New(os.Stderr, prefix, log.Lmicroseconds),
 
 		fsm: fsm,
 	}
@@ -144,7 +144,7 @@ func (n *Node) Run() {
 
 	// jitter for randomizing startup election
 	<-time.After(time.Duration(rand.Int63n(int64(HeartbeatTimeout))))
-	ticker := time.NewTicker(Tick)
+	ticker := time.NewTicker(TickDuration)
 
 loop:
 	for {
