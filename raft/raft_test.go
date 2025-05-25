@@ -139,15 +139,15 @@ func getCluster() (Cluster, func()) {
 		{Node: node3, FSM: fsm3},
 	}
 
-	return Cluster{Nodes: nodes}, cleanup
+	return Cluster{Members: nodes}, cleanup
 }
 
 func getLeader(cluster Cluster) *NodeFSM {
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
-		for _, node := range cluster.Nodes {
-			if node.Node.state == Leader {
-				return node
+		for _, member := range cluster.Members {
+			if member.Node.state == Leader {
+				return member
 			}
 		}
 
@@ -158,9 +158,9 @@ func getLeader(cluster Cluster) *NodeFSM {
 }
 
 func getFollower(cluster Cluster) *NodeFSM {
-	for _, node := range cluster.Nodes {
-		if node.Node.state == Follower {
-			return node
+	for _, member := range cluster.Members {
+		if member.Node.state == Follower {
+			return member
 		}
 	}
 
@@ -176,8 +176,8 @@ func TestElection(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 
 		leaders = 0
-		for _, node := range cluster.Nodes {
-			if node.Node.state == Leader {
+		for _, member := range cluster.Members {
+			if member.Node.state == Leader {
 				leaders++
 			}
 		}
@@ -218,19 +218,19 @@ type NodeFSM struct {
 }
 
 type Cluster struct {
-	Nodes []*NodeFSM
+	Members []*NodeFSM
 }
 
 func ensurePropagation(t *testing.T, skip []NodeID, cluster Cluster, payload []byte) {
 	deadline := time.Now().Add(1 * time.Second)
 	for time.Now().Before(deadline) {
 		found := 0
-		for _, node := range cluster.Nodes {
-			if slices.Contains(skip, node.Node.config.ID) {
+		for _, member := range cluster.Members {
+			if slices.Contains(skip, member.Node.config.ID) {
 				continue
 			}
 
-			for _, log := range node.FSM.logs {
+			for _, log := range member.FSM.logs {
 				if bytes.Equal(log.Payload, payload) {
 					found++
 					break
@@ -238,7 +238,7 @@ func ensurePropagation(t *testing.T, skip []NodeID, cluster Cluster, payload []b
 			}
 		}
 
-		if found == len(cluster.Nodes)-len(skip) {
+		if found == len(cluster.Members)-len(skip) {
 			return
 		}
 
@@ -264,8 +264,8 @@ func TestPropose(t *testing.T) {
 
 	ensurePropagation(t, nil, cluster, payload)
 
-	for _, node := range cluster.Nodes {
-		if node.Node.commitIndex != 1 {
+	for _, member := range cluster.Members {
+		if member.Node.commitIndex != 1 {
 			t.Errorf("commit index not progressed")
 		}
 	}
