@@ -180,7 +180,7 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 	}
 
 	if resp.Term > n.currentTerm {
-		n.currentTerm = req.Term
+		n.currentTerm = resp.Term
 		n.votedFor = nil
 		n.state = Follower
 		if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
