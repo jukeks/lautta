@@ -21,13 +21,37 @@ func (n *Node) handleTick() {
 	}
 }
 
+func (n *Node) handleNewerTerm(newTerm TermID) {
+	// always reset to follower
+	wasLeader := n.state == Leader
+
+	n.logger.Printf("newer term: %d (current: %d)", newTerm, n.currentTerm)
+	n.state = Follower
+	n.votedFor = nil
+	n.currentTerm = newTerm
+
+	n.lastHeartbeat = time.Now()
+	n.votes = 0
+	n.voteResponsesReceived = 0
+
+	if wasLeader {
+		n.leader = nil
+		// cancel ongoing operations
+		n.logger.Println("canceling ongoing operations due to newer term")
+		for _, req := range n.ongoingOperations {
+			req.Ret <- ProposeResponse{
+				Err: errors.New("leader changed"),
+			}
+		}
+	}
+	n.ongoingOperations = make(map[LogIndex]ProposeRequest)
+}
+
 func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 	n.logger.Printf("append entries req: %+v", req)
 
 	if req.Term > n.currentTerm {
-		n.currentTerm = req.Term
-		n.votedFor = nil
-		n.state = Follower
+		n.handleNewerTerm(req.Term)
 	}
 
 	n.logger.Printf("got %d entries", len(req.Entries))
@@ -180,9 +204,7 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 	}
 
 	if resp.Term > n.currentTerm {
-		n.currentTerm = resp.Term
-		n.votedFor = nil
-		n.state = Follower
+		n.handleNewerTerm(resp.Term)
 		if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
 			n.logger.Fatalf("failed to store state: %v", err)
 		}
@@ -222,9 +244,7 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 
 func (n *Node) handleVoteRequest(req RequestVoteRequest) {
 	if req.Term > n.currentTerm {
-		n.currentTerm = req.Term
-		n.votedFor = nil
-		n.state = Follower
+		n.handleNewerTerm(req.Term)
 	}
 
 	olderTerm := req.Term < n.currentTerm
@@ -262,11 +282,8 @@ func (n *Node) handleVoteResponse(resp RequestVoteResponse) {
 		return
 	}
 
-	n.voteResponsesReceived += 1
 	if resp.Term > n.currentTerm {
-		n.currentTerm = resp.Term
-		n.votedFor = nil
-		n.state = Follower
+		n.handleNewerTerm(resp.Term)
 
 		if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
 			n.logger.Fatalf("failed to store state: %v", err)
@@ -276,6 +293,7 @@ func (n *Node) handleVoteResponse(resp RequestVoteResponse) {
 		return
 	}
 
+	n.voteResponsesReceived += 1
 	if resp.VoteGranted {
 		n.votes += 1
 	}

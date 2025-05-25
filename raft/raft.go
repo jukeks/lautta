@@ -37,6 +37,19 @@ const (
 	Leader
 )
 
+func (s NodeState) String() string {
+	switch s {
+	case Follower:
+		return "Follower"
+	case Candidate:
+		return "Candidate"
+	case Leader:
+		return "Leader"
+	default:
+		return fmt.Sprintf("State(%d)", s)
+	}
+}
+
 type LeaderState struct {
 	NextIndex  map[NodeID]LogIndex
 	MatchIndex map[NodeID]LogIndex
