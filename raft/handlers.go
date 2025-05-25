@@ -174,6 +174,21 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 	n.logger.Printf("append entries resp: %+v", resp)
 	req := resp.Request
 	peer := req.TargetNode
+	if n.state != Leader {
+		n.logger.Printf("got append entries response but not a leader, ignoring")
+		return
+	}
+
+	if resp.Term > n.currentTerm {
+		n.currentTerm = req.Term
+		n.votedFor = nil
+		n.state = Follower
+		if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
+			n.logger.Fatalf("failed to store state: %v", err)
+		}
+		n.logger.Printf("newer term received from append entries response, node %d is now follower", n.config.ID)
+		return
+	}
 
 	if resp.Success {
 		n.leader.MatchIndex[peer] = req.PrevLogIndex
@@ -209,7 +224,7 @@ func (n *Node) handleVoteRequest(req RequestVoteRequest) {
 	if req.Term > n.currentTerm {
 		n.currentTerm = req.Term
 		n.votedFor = nil
-		n.state = Follower // TODO check
+		n.state = Follower
 	}
 
 	olderTerm := req.Term < n.currentTerm
@@ -243,21 +258,26 @@ func (n *Node) handleVoteRequest(req RequestVoteRequest) {
 func (n *Node) handleVoteResponse(resp RequestVoteResponse) {
 	n.logger.Printf("vote response: %+v", resp)
 	if n.state != Candidate {
-		n.logger.Printf("got vote response but not a candidate")
+		n.logger.Printf("got vote response but not a candidate, ignoring")
 		return
 	}
+
 	n.voteResponsesReceived += 1
 	if resp.Term > n.currentTerm {
 		n.currentTerm = resp.Term
 		n.votedFor = nil
 		n.state = Follower
-	}
-	if resp.VoteGranted {
-		n.votes += 1
+
+		if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
+			n.logger.Fatalf("failed to store state: %v", err)
+		}
+
+		n.logger.Printf("newer term received from vote response, node %d is now follower", n.config.ID)
+		return
 	}
 
-	if err := n.stableStore.Store(n.currentTerm, n.votedFor); err != nil {
-		n.logger.Fatalf("failed to store state: %v", err)
+	if resp.VoteGranted {
+		n.votes += 1
 	}
 
 	if n.voteResponsesReceived == len(n.config.Peers) {
