@@ -24,6 +24,13 @@ func NewTukkiStore(dbDir string) (*TukkiStore, error) {
 	}, nil
 }
 
+func (t *TukkiStore) Close() error {
+	if err := t.db.Close(); err != nil {
+		return fmt.Errorf("failed to close Tukki store: %w", err)
+	}
+	return nil
+}
+
 const (
 	logPrefix      = "raft-log-"
 	stableStateKey = "raft-0-stable-state"

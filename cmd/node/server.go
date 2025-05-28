@@ -3,8 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
-	"os"
+	"log/slog"
 
 	kvv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/kv/v1"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
@@ -14,19 +13,20 @@ import (
 type RaftServer struct {
 	raftv1.UnimplementedRaftServiceServer
 	kvv1.UnimplementedKVServiceServer
-	logger *log.Logger
+	logger *slog.Logger
 	comms  lautta.Comms
 }
 
 func NewRaftServer(comms lautta.Comms) *RaftServer {
 	return &RaftServer{
-		logger: log.New(os.Stderr, "[grpc] ", log.Lmicroseconds),
-		comms:  comms,
+		logger: slog.New(slog.Default().Handler()).
+			With("prefix", "raft-server"),
+		comms: comms,
 	}
 }
 
 func (s *RaftServer) AppendEntries(ctx context.Context, req *raftv1.AppendEntriesRequest) (*raftv1.AppendEntriesResponse, error) {
-	s.logger.Println("AppendEntries called")
+	s.logger.Debug("AppendEntries called")
 	ret := make(chan lautta.AppendEntriesResponse, 1)
 	entries := make([]lautta.LogEntry, len(req.Entries))
 	for i, entry := range req.Entries {
@@ -53,7 +53,7 @@ func (s *RaftServer) AppendEntries(ctx context.Context, req *raftv1.AppendEntrie
 }
 
 func (s *RaftServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteRequest) (*raftv1.RequestVoteResponse, error) {
-	s.logger.Println("RequestVote called")
+	s.logger.Debug("RequestVote called")
 
 	ret := make(chan lautta.RequestVoteResponse, 1)
 	s.comms.RequestVoteRequestsIn <- lautta.RequestVoteRequest{
@@ -65,7 +65,7 @@ func (s *RaftServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteReq
 	}
 
 	resp := <-ret
-	s.logger.Printf("request vote resp received")
+	s.logger.Debug("request vote resp received")
 	return &raftv1.RequestVoteResponse{
 		Term:        int64(resp.Term),
 		VoteGranted: resp.VoteGranted,
@@ -78,7 +78,7 @@ type KV struct {
 }
 
 func (s *RaftServer) Write(ctx context.Context, req *kvv1.WriteRequest) (*kvv1.WriteResponse, error) {
-	s.logger.Println("Write called")
+	s.logger.Debug("Write called")
 	payload := KV{
 		Key:   req.Key,
 		Value: req.Value,
@@ -94,7 +94,7 @@ func (s *RaftServer) Write(ctx context.Context, req *kvv1.WriteRequest) (*kvv1.W
 	}
 
 	resp := <-ret
-	s.logger.Println("Write response received")
+	s.logger.Debug("Write response received")
 	if resp.Err != nil {
 		return nil, resp.Err
 	}

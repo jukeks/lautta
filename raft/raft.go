@@ -2,9 +2,8 @@ package lautta
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"math/rand"
-	"os"
 	"time"
 )
 
@@ -88,7 +87,7 @@ type Node struct {
 	quit chan bool
 	done chan bool
 
-	logger *log.Logger
+	logger *slog.Logger
 
 	comms Comms
 
@@ -96,7 +95,6 @@ type Node struct {
 }
 
 func NewNode(config Config, comms Comms, fsm FSM, logStore LogStore, stableStore StableStore) *Node {
-	prefix := fmt.Sprintf("[node %d] ", config.ID)
 	return &Node{
 		config: config,
 		comms:  comms,
@@ -119,7 +117,8 @@ func NewNode(config Config, comms Comms, fsm FSM, logStore LogStore, stableStore
 		quit: make(chan bool, 1),
 		done: make(chan bool, 1),
 
-		logger: log.New(os.Stderr, prefix, log.Lmicroseconds),
+		logger: slog.New(slog.Default().Handler()).
+			With("prefix", "raft").With("node_id", config.ID),
 
 		fsm: fsm,
 	}
@@ -135,11 +134,11 @@ func (n *Node) Start() {
 }
 
 func (n *Node) Run() {
-	n.logger.Printf("starting node %d", n.config.ID)
+	n.logger.Info("starting node")
 	var err error
 	n.currentTerm, n.votedFor, err = n.stableStore.Restore()
 	if err != nil {
-		n.logger.Fatalf("failed to restore from stable store: %v", err)
+		n.Fatal("failed to restore from stable store", "err", err)
 	}
 
 	// jitter for randomizing startup election
@@ -168,7 +167,7 @@ loop:
 			n.handleProposeRequest(proposeReq)
 
 		case <-n.quit:
-			n.logger.Println("quitting")
+			n.logger.Info("quitting")
 			break loop
 		}
 	}

@@ -2,20 +2,24 @@ package main
 
 import (
 	"context"
+	"log/slog"
 
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
 	lautta "github.com/jukeks/lautta/raft"
 )
 
 type RaftClient struct {
-	peers map[lautta.NodeID]raftv1.RaftServiceClient
-	comms lautta.Comms
+	peers  map[lautta.NodeID]raftv1.RaftServiceClient
+	comms  lautta.Comms
+	logger *slog.Logger
 }
 
 func NewRaftClient(peers map[lautta.NodeID]raftv1.RaftServiceClient, comms lautta.Comms) *RaftClient {
 	return &RaftClient{
 		peers: peers,
 		comms: comms,
+		logger: slog.New(slog.Default().Handler()).
+			With("prefix", "raft-client"),
 	}
 }
 
@@ -56,7 +60,7 @@ func (c *RaftClient) sendAppendEntriesRequest(node lautta.NodeID, req lautta.App
 		})
 
 		if err != nil {
-			logger.Printf("error requesting append entries: %v", err)
+			c.logger.Error("error requesting append entries", "err", err)
 			return
 		}
 		c.comms.AppendEntriesResponsesIn <- lautta.AppendEntriesResponse{
@@ -81,7 +85,7 @@ func (c *RaftClient) sendVoteRequest(node lautta.NodeID, req lautta.RequestVoteR
 		})
 
 		if err != nil {
-			logger.Printf("error requesting vote: %v", err)
+			c.logger.Error("error requesting vote", "err", err)
 			return
 		}
 		c.comms.RequestVoteResponsesIn <- lautta.RequestVoteResponse{
