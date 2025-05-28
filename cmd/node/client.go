@@ -48,7 +48,6 @@ func (c *RaftGrpcClient) AppendEntries(ctx context.Context, node lautta.NodeID, 
 	return lautta.AppendEntriesResponse{
 		Term:    lautta.TermID(resp.Term),
 		Success: resp.Success,
-		Request: req,
 	}, nil
 
 }

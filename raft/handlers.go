@@ -202,8 +202,8 @@ func (n *Node) checkCommitProgress() {
 
 func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 	n.logger.Debug("append entries resp", "resp", resp)
-	req := resp.Request
-	peer := req.TargetNode
+	req := resp.request
+	peer := req.targetNode
 	if n.state != Leader {
 		n.logger.Info("got append entries response but not a leader, ignoring")
 		return
@@ -243,7 +243,7 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 		PrevLogIndex: lastLog.Index,
 		PrevLogTerm:  lastLog.Term,
 		LeaderCommit: n.commitIndex,
-		TargetNode:   peer,
+		targetNode:   peer,
 		Entries:      entries,
 	}
 }
@@ -366,7 +366,7 @@ func (n *Node) startElection() {
 			CandidateID:  n.config.ID,
 			LastLogIndex: lastLog.Index,
 			LastLogTerm:  lastLog.Term,
-			TargetNode:   peer.ID,
+			targetNode:   peer.ID,
 		}
 	}
 }
@@ -384,7 +384,7 @@ func (n *Node) sendHeartbeats() {
 			PrevLogIndex: lastLog.Index,
 			PrevLogTerm:  lastLog.Term,
 			LeaderCommit: n.commitIndex,
-			TargetNode:   peer.ID,
+			targetNode:   peer.ID,
 		}
 	}
 }
@@ -435,7 +435,7 @@ func (n *Node) replicate() {
 			PrevLogIndex: lastLog.Index,
 			PrevLogTerm:  lastLog.Term,
 			LeaderCommit: n.commitIndex,
-			TargetNode:   nodeID,
+			targetNode:   nodeID,
 			Entries:      []LogEntry{entry},
 		}
 	}

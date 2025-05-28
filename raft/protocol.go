@@ -12,7 +12,7 @@ type AppendEntriesRequest struct {
 	LeaderCommit LogIndex
 
 	ret        chan AppendEntriesResponse
-	TargetNode NodeID
+	targetNode NodeID
 }
 
 type AppendEntriesResponse struct {
@@ -20,7 +20,7 @@ type AppendEntriesResponse struct {
 	Success bool
 
 	// for matching logic
-	Request AppendEntriesRequest
+	request AppendEntriesRequest
 }
 
 type RequestVoteRequest struct {
@@ -30,7 +30,7 @@ type RequestVoteRequest struct {
 	LastLogTerm  TermID
 
 	ret        chan RequestVoteResponse
-	TargetNode NodeID
+	targetNode NodeID
 }
 
 type RequestVoteResponse struct {

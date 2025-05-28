@@ -6,9 +6,9 @@ func (n *Node) handleClient() {
 	for {
 		select {
 		case req := <-n.comms.AppendEntriesRequestsOut:
-			n.sendAppendEntriesRequest(req.TargetNode, req)
+			n.sendAppendEntriesRequest(req.targetNode, req)
 		case req := <-n.comms.RequestVoteRequestsOut:
-			n.sendVoteRequest(req.TargetNode, req)
+			n.sendVoteRequest(req.targetNode, req)
 		}
 	}
 }
@@ -20,7 +20,7 @@ func (n *Node) sendAppendEntriesRequest(node NodeID, req AppendEntriesRequest) e
 			n.logger.Error("error requesting append entries", "err", err)
 			return
 		}
-		resp.Request = req
+		resp.request = req
 		n.comms.AppendEntriesResponsesIn <- resp
 	}()
 
