@@ -138,7 +138,7 @@ func (n *Node) Run() {
 	var err error
 	n.currentTerm, n.votedFor, err = n.stableStore.Restore()
 	if err != nil {
-		n.Fatal("failed to restore from stable store: %v", err)
+		n.Fatal("failed to restore from stable store", "err", err)
 	}
 
 	// jitter for randomizing startup election
