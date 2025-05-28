@@ -98,10 +98,7 @@ func main() {
 
 	cfg := parseConfig(*config)
 	peers := initPeerClients(cfg.Peers)
-	comms := lautta.NewComms()
-
-	client := NewRaftClient(peers, comms)
-	client.Start()
+	client := NewRaftClient(peers)
 
 	fsm := &fsm{}
 	logStore := lautta.NewInMemLogStore()
@@ -118,11 +115,11 @@ func main() {
 		stableStore = store
 		logger.Info("using tukki store", "db-dir", *dbDir)
 	}
-	lauttaNode := lautta.NewNode(cfg, comms, fsm, logStore, stableStore)
+	lauttaNode := lautta.NewNode(cfg, client, fsm, logStore, stableStore)
 	lauttaNode.Start()
 	defer lauttaNode.Stop()
 
-	raftServer := NewRaftServer(comms)
+	raftServer := NewRaftServer(lauttaNode)
 
 	ls, err := net.Listen("tcp", cfg.Address)
 	if err != nil {

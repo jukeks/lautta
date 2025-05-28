@@ -89,15 +89,17 @@ type Node struct {
 
 	logger *slog.Logger
 
-	comms Comms
+	comms      comms
+	raftClient RaftClient
 
 	fsm FSM
 }
 
-func NewNode(config Config, comms Comms, fsm FSM, logStore LogStore, stableStore StableStore) *Node {
+func NewNode(config Config, raftClient RaftClient, fsm FSM, logStore LogStore, stableStore StableStore) *Node {
 	return &Node{
-		config: config,
-		comms:  comms,
+		config:     config,
+		comms:      newComms(),
+		raftClient: raftClient,
 
 		currentTerm: 0,
 		votedFor:    nil,
@@ -140,6 +142,8 @@ func (n *Node) Run() {
 	if err != nil {
 		n.Fatal("failed to restore from stable store", "err", err)
 	}
+
+	go n.handleClient()
 
 	// jitter for randomizing startup election
 	<-time.After(time.Duration(rand.Int63n(int64(HeartbeatTimeout))))
