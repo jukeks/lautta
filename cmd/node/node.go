@@ -36,13 +36,13 @@ func parseConfig(config string) lautta.Config {
 	for i, node := range nodes {
 		components := strings.Split(node, "=")
 		if len(components) != 2 {
-			logger.Error("invalid node format: %s", node)
+			logger.Error("invalid node format", "node", node)
 			os.Exit(1)
 		}
 		id_raw := components[0]
 		id, err := strconv.ParseInt(id_raw, 10, 64)
 		if err != nil {
-			logger.Error("invalid node id: %s", id_raw)
+			logger.Error("invalid node id", "id", id_raw)
 			os.Exit(1)
 		}
 		address := components[1]
@@ -69,7 +69,7 @@ func initPeerClients(peers []lautta.Peer) map[lautta.NodeID]raftv1.RaftServiceCl
 
 		c, err := grpc.NewClient(peer.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			logger.Error("failed to connect to peer %d: %v", peer.ID, err)
+			logger.Error("failed to connect to peer", "peer", peer.ID, "err", err)
 			os.Exit(1)
 		}
 		client := raftv1.NewRaftServiceClient(c)
