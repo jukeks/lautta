@@ -46,7 +46,7 @@ func (n *Node) handleNewerTerm(newTerm TermID) {
 		if len(n.ongoingOperations) > 0 {
 			n.logger.Debug("canceling ongoing operations due to newer term")
 			for _, req := range n.ongoingOperations {
-				req.Ret <- ProposeResponse{
+				req.ret <- ProposeResponse{
 					Err: errors.New("leader changed"),
 				}
 			}
@@ -117,7 +117,7 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 		n.Fatal("failed to store state", "err", err)
 	}
 
-	req.Ret <- AppendEntriesResponse{
+	req.ret <- AppendEntriesResponse{
 		Term:    n.currentTerm,
 		Success: !olderTerm && !prevLogMismatch,
 	}
@@ -188,7 +188,7 @@ func (n *Node) checkCommitProgress() {
 				n.Fatal("failed to apply log", "err", err)
 			}
 
-			req.Ret <- ProposeResponse{}
+			req.ret <- ProposeResponse{}
 			toDelete = append(toDelete, idx)
 		}
 	}
@@ -202,8 +202,8 @@ func (n *Node) checkCommitProgress() {
 
 func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 	n.logger.Debug("append entries resp", "resp", resp)
-	req := resp.Request
-	peer := req.TargetNode
+	req := resp.request
+	peer := req.targetNode
 	if n.state != Leader {
 		n.logger.Info("got append entries response but not a leader, ignoring")
 		return
@@ -243,7 +243,7 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 		PrevLogIndex: lastLog.Index,
 		PrevLogTerm:  lastLog.Term,
 		LeaderCommit: n.commitIndex,
-		TargetNode:   peer,
+		targetNode:   peer,
 		Entries:      entries,
 	}
 }
@@ -281,7 +281,7 @@ func (n *Node) handleVoteRequest(req RequestVoteRequest) {
 	}
 
 	n.logger.Debug("vote request node", "from", req.CandidateID, "req", req, "resp", resp)
-	req.Ret <- resp
+	req.ret <- resp
 }
 
 func (n *Node) handleVoteResponse(resp RequestVoteResponse) {
@@ -366,7 +366,7 @@ func (n *Node) startElection() {
 			CandidateID:  n.config.ID,
 			LastLogIndex: lastLog.Index,
 			LastLogTerm:  lastLog.Term,
-			TargetNode:   peer.ID,
+			targetNode:   peer.ID,
 		}
 	}
 }
@@ -384,7 +384,7 @@ func (n *Node) sendHeartbeats() {
 			PrevLogIndex: lastLog.Index,
 			PrevLogTerm:  lastLog.Term,
 			LeaderCommit: n.commitIndex,
-			TargetNode:   peer.ID,
+			targetNode:   peer.ID,
 		}
 	}
 }
@@ -392,7 +392,7 @@ func (n *Node) sendHeartbeats() {
 func (n *Node) handleProposeRequest(req ProposeRequest) {
 	n.logger.Debug("got write request", "req", req, "payload", req.Payload)
 	if n.state != Leader {
-		req.Ret <- ProposeResponse{
+		req.ret <- ProposeResponse{
 			Err: errors.New("not a leader"),
 		}
 		return
@@ -435,7 +435,7 @@ func (n *Node) replicate() {
 			PrevLogIndex: lastLog.Index,
 			PrevLogTerm:  lastLog.Term,
 			LeaderCommit: n.commitIndex,
-			TargetNode:   nodeID,
+			targetNode:   nodeID,
 			Entries:      []LogEntry{entry},
 		}
 	}

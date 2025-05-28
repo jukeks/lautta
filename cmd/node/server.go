@@ -10,24 +10,23 @@ import (
 	lautta "github.com/jukeks/lautta/raft"
 )
 
-type RaftServer struct {
+type RaftGrpcServer struct {
 	raftv1.UnimplementedRaftServiceServer
 	kvv1.UnimplementedKVServiceServer
 	logger *slog.Logger
-	comms  lautta.Comms
+	raft   lautta.RaftServer
 }
 
-func NewRaftServer(comms lautta.Comms) *RaftServer {
-	return &RaftServer{
+func NewRaftServer(raft lautta.RaftServer) *RaftGrpcServer {
+	return &RaftGrpcServer{
 		logger: slog.New(slog.Default().Handler()).
 			With("prefix", "raft-server"),
-		comms: comms,
+		raft: raft,
 	}
 }
 
-func (s *RaftServer) AppendEntries(ctx context.Context, req *raftv1.AppendEntriesRequest) (*raftv1.AppendEntriesResponse, error) {
+func (s *RaftGrpcServer) AppendEntries(ctx context.Context, req *raftv1.AppendEntriesRequest) (*raftv1.AppendEntriesResponse, error) {
 	s.logger.Debug("AppendEntries called")
-	ret := make(chan lautta.AppendEntriesResponse, 1)
 	entries := make([]lautta.LogEntry, len(req.Entries))
 	for i, entry := range req.Entries {
 		entries[i].Index = lautta.LogIndex(entry.Index)
@@ -35,36 +34,39 @@ func (s *RaftServer) AppendEntries(ctx context.Context, req *raftv1.AppendEntrie
 		entries[i].Payload = entry.Payload
 	}
 
-	s.comms.AppendEntriesRequestsIn <- lautta.AppendEntriesRequest{
+	resp, err := s.raft.AppendEntries(ctx, lautta.AppendEntriesRequest{
 		Term:         lautta.TermID(req.Term),
 		LeaderID:     lautta.NodeID(req.LeaderId),
 		PrevLogIndex: lautta.LogIndex(req.PrevLogIndex),
 		PrevLogTerm:  lautta.TermID(req.PrevLogTerm),
 		Entries:      entries,
 		LeaderCommit: lautta.LogIndex(req.LeaderCommit),
-		Ret:          ret,
+	})
+	if err != nil {
+		s.logger.Error("error in AppendEntries", "error", err)
+		return nil, err
 	}
 
-	resp := <-ret
 	return &raftv1.AppendEntriesResponse{
 		Term:    int64(resp.Term),
 		Success: resp.Success,
 	}, nil
 }
 
-func (s *RaftServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteRequest) (*raftv1.RequestVoteResponse, error) {
+func (s *RaftGrpcServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteRequest) (*raftv1.RequestVoteResponse, error) {
 	s.logger.Debug("RequestVote called")
 
-	ret := make(chan lautta.RequestVoteResponse, 1)
-	s.comms.RequestVoteRequestsIn <- lautta.RequestVoteRequest{
+	resp, err := s.raft.RequestVote(ctx, lautta.RequestVoteRequest{
 		Term:         lautta.TermID(req.Term),
 		CandidateID:  lautta.NodeID(req.CandidateId),
 		LastLogIndex: lautta.LogIndex(req.LastLogIndex),
 		LastLogTerm:  lautta.TermID(req.LastLogTerm),
-		Ret:          ret,
+	})
+	if err != nil {
+		s.logger.Error("error in RequestVote", "error", err)
+		return nil, err
 	}
 
-	resp := <-ret
 	s.logger.Debug("request vote resp received")
 	return &raftv1.RequestVoteResponse{
 		Term:        int64(resp.Term),
@@ -77,7 +79,7 @@ type KV struct {
 	Value string
 }
 
-func (s *RaftServer) Write(ctx context.Context, req *kvv1.WriteRequest) (*kvv1.WriteResponse, error) {
+func (s *RaftGrpcServer) Write(ctx context.Context, req *kvv1.WriteRequest) (*kvv1.WriteResponse, error) {
 	s.logger.Debug("Write called")
 	payload := KV{
 		Key:   req.Key,
@@ -87,13 +89,15 @@ func (s *RaftServer) Write(ctx context.Context, req *kvv1.WriteRequest) (*kvv1.W
 	if err != nil {
 		return nil, err
 	}
-	ret := make(chan lautta.ProposeResponse)
-	s.comms.ProposeRequestsIn <- lautta.ProposeRequest{
+
+	resp, err := s.raft.Propose(ctx, lautta.ProposeRequest{
 		Payload: raw,
-		Ret:     ret,
+	})
+	if err != nil {
+		s.logger.Error("error in Propose", "error", err)
+		return nil, err
 	}
 
-	resp := <-ret
 	s.logger.Debug("Write response received")
 	if resp.Err != nil {
 		return nil, resp.Err

@@ -11,8 +11,8 @@ type AppendEntriesRequest struct {
 
 	LeaderCommit LogIndex
 
-	Ret        chan AppendEntriesResponse
-	TargetNode NodeID
+	ret        chan AppendEntriesResponse
+	targetNode NodeID
 }
 
 type AppendEntriesResponse struct {
@@ -20,7 +20,7 @@ type AppendEntriesResponse struct {
 	Success bool
 
 	// for matching logic
-	Request AppendEntriesRequest
+	request AppendEntriesRequest
 }
 
 type RequestVoteRequest struct {
@@ -29,8 +29,8 @@ type RequestVoteRequest struct {
 	LastLogIndex LogIndex
 	LastLogTerm  TermID
 
-	Ret        chan RequestVoteResponse
-	TargetNode NodeID
+	ret        chan RequestVoteResponse
+	targetNode NodeID
 }
 
 type RequestVoteResponse struct {
@@ -41,14 +41,14 @@ type RequestVoteResponse struct {
 type ProposeRequest struct {
 	Payload []byte
 
-	Ret chan ProposeResponse
+	ret chan ProposeResponse
 }
 
 type ProposeResponse struct {
 	Err error
 }
 
-type Comms struct {
+type comms struct {
 	// messages to node
 	AppendEntriesRequestsIn  chan AppendEntriesRequest
 	AppendEntriesResponsesIn chan AppendEntriesResponse
@@ -62,8 +62,8 @@ type Comms struct {
 	RequestVoteRequestsOut   chan RequestVoteRequest
 }
 
-func NewComms() Comms {
-	return Comms{
+func newComms() comms {
+	return comms{
 		AppendEntriesRequestsIn:  make(chan AppendEntriesRequest, 10),
 		AppendEntriesResponsesIn: make(chan AppendEntriesResponse, 10),
 		RequestVoteRequestsIn:    make(chan RequestVoteRequest, 10),

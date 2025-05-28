@@ -2,75 +2,29 @@ package lautta
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"slices"
 	"testing"
 	"time"
 )
 
-func serve(stop chan bool, node1 NodeID, comms1 Comms, node2 NodeID, comms2 Comms, node3 NodeID, comms3 Comms) {
-	m := map[NodeID]Comms{
-		node1: comms1,
-		node2: comms2,
-		node3: comms3,
-	}
+type testClient struct {
+	servers map[NodeID]RaftServer
+}
 
-	relayAppendEntriesRequest := func(req AppendEntriesRequest, origin, target Comms) {
-		req.Ret = make(chan AppendEntriesResponse, 1)
-		select {
-		case target.AppendEntriesRequestsIn <- req:
-		case <-time.After(50 * time.Millisecond):
-			return
-		}
-		select {
-		case resp := <-req.Ret:
-			resp.Request = req
-			origin.AppendEntriesResponsesIn <- resp
-		case <-time.After(50 * time.Millisecond):
-			return
-		}
+func (c *testClient) AppendEntries(ctx context.Context, node NodeID, req AppendEntriesRequest) (AppendEntriesResponse, error) {
+	if server, ok := c.servers[node]; ok {
+		return server.AppendEntries(ctx, req)
 	}
+	return AppendEntriesResponse{}, fmt.Errorf("server not found for node %d: %+v", node, c.servers)
+}
 
-	relayRequestVoteRequest := func(req RequestVoteRequest, origin, target Comms) {
-		req.Ret = make(chan RequestVoteResponse, 1)
-		select {
-		case target.RequestVoteRequestsIn <- req:
-		case <-time.After(50 * time.Millisecond):
-			return
-		}
-
-		select {
-		case resp := <-req.Ret:
-			origin.RequestVoteResponsesIn <- resp
-		case <-time.After(50 * time.Millisecond):
-			return
-		}
+func (c *testClient) VoteRequest(ctx context.Context, node NodeID, req RequestVoteRequest) (RequestVoteResponse, error) {
+	if server, ok := c.servers[node]; ok {
+		return server.RequestVote(ctx, req)
 	}
-
-loop:
-	for {
-		select {
-		case <-stop:
-			break loop
-		case req := <-comms1.AppendEntriesRequestsOut:
-			target := m[req.TargetNode]
-			go relayAppendEntriesRequest(req, comms1, target)
-		case req := <-comms2.AppendEntriesRequestsOut:
-			target := m[req.TargetNode]
-			go relayAppendEntriesRequest(req, comms2, target)
-		case req := <-comms3.AppendEntriesRequestsOut:
-			target := m[req.TargetNode]
-			go relayAppendEntriesRequest(req, comms3, target)
-		case req := <-comms1.RequestVoteRequestsOut:
-			target := m[req.TargetNode]
-			go relayRequestVoteRequest(req, comms1, target)
-		case req := <-comms2.RequestVoteRequestsOut:
-			target := m[req.TargetNode]
-			go relayRequestVoteRequest(req, comms2, target)
-		case req := <-comms3.RequestVoteRequestsOut:
-			target := m[req.TargetNode]
-			go relayRequestVoteRequest(req, comms3, target)
-		}
-	}
+	return RequestVoteResponse{}, fmt.Errorf("server not found for node %d", node)
 }
 
 type fsm struct {
@@ -83,15 +37,10 @@ func (f *fsm) Apply(log LogEntry) error {
 }
 
 func getCluster(started bool) (Cluster, func()) {
-	comms1 := NewComms()
-	comms2 := NewComms()
-	comms3 := NewComms()
-
 	nodeID1 := NodeID(1)
 	nodeID2 := NodeID(2)
 	nodeID3 := NodeID(3)
 	stop := make(chan bool, 1)
-	go serve(stop, nodeID1, comms1, nodeID2, comms2, nodeID3, comms3)
 
 	config1 := Config{
 		ID: nodeID1,
@@ -118,9 +67,15 @@ func getCluster(started bool) (Cluster, func()) {
 	fsm2 := &fsm{}
 	fsm3 := &fsm{}
 
-	node1 := NewNode(config1, comms1, fsm1, NewInMemLogStore(), NewInMemStableStore())
-	node2 := NewNode(config2, comms2, fsm2, NewInMemLogStore(), NewInMemStableStore())
-	node3 := NewNode(config3, comms3, fsm3, NewInMemLogStore(), NewInMemStableStore())
+	client := &testClient{servers: map[NodeID]RaftServer{}}
+
+	node1 := NewNode(config1, client, fsm1, NewInMemLogStore(), NewInMemStableStore())
+	node2 := NewNode(config2, client, fsm2, NewInMemLogStore(), NewInMemStableStore())
+	node3 := NewNode(config3, client, fsm3, NewInMemLogStore(), NewInMemStableStore())
+
+	client.servers[nodeID1] = node1
+	client.servers[nodeID2] = node2
+	client.servers[nodeID3] = node3
 
 	if started {
 		node1.Start()
@@ -196,11 +151,11 @@ func TestElection(t *testing.T) {
 	}
 }
 
-func propose(t *testing.T, leader Comms, payload []byte) error {
+func propose(t *testing.T, leader comms, payload []byte) error {
 	ret := make(chan ProposeResponse, 1)
 	leader.ProposeRequestsIn <- ProposeRequest{
 		Payload: payload,
-		Ret:     ret,
+		ret:     ret,
 	}
 
 	select {
