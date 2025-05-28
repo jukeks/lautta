@@ -2,11 +2,13 @@ package main
 
 import (
 	"flag"
-	"log"
+	"log/slog"
 	"net"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	kvv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/kv/v1"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
@@ -20,12 +22,13 @@ var (
 	inMem  = flag.Bool("in-mem", false, "use in-memory log and stable store")
 	dbDir  = flag.String("db-dir", "", "directory for raft state")
 
-	logger = log.New(os.Stderr, "[server] ", log.Lmicroseconds)
+	logger = slog.New(slog.Default().Handler()).With("prefix", "node")
 )
 
 func parseConfig(config string) lautta.Config {
 	if config == "" {
-		logger.Fatal("config is required")
+		logger.Error("config is required")
+		os.Exit(1)
 	}
 
 	nodes := strings.Split(config, ",")
@@ -33,12 +36,14 @@ func parseConfig(config string) lautta.Config {
 	for i, node := range nodes {
 		components := strings.Split(node, "=")
 		if len(components) != 2 {
-			logger.Fatalf("invalid node format: %s", node)
+			logger.Error("invalid node format: %s", node)
+			os.Exit(1)
 		}
 		id_raw := components[0]
 		id, err := strconv.ParseInt(id_raw, 10, 64)
 		if err != nil {
-			logger.Fatalf("invalid node id: %s", id_raw)
+			logger.Error("invalid node id: %s", id_raw)
+			os.Exit(1)
 		}
 		address := components[1]
 		peers[i] = lautta.Peer{
@@ -59,11 +64,13 @@ func parseConfig(config string) lautta.Config {
 
 func initPeerClients(peers []lautta.Peer) map[lautta.NodeID]raftv1.RaftServiceClient {
 	peerClients := make(map[lautta.NodeID]raftv1.RaftServiceClient)
+	logger.Info("peers", "peers", peers)
 	for _, peer := range peers {
-		logger.Printf("peer: %d -> %s", peer.ID, peer.Address)
+
 		c, err := grpc.NewClient(peer.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			logger.Fatalf("failed to connect to peer %d: %v", peer.ID, err)
+			logger.Error("failed to connect to peer %d: %v", peer.ID, err)
+			os.Exit(1)
 		}
 		client := raftv1.NewRaftServiceClient(c)
 		peerClients[peer.ID] = client
@@ -85,7 +92,8 @@ func main() {
 	flag.Parse()
 
 	if !*inMem && *dbDir == "" {
-		logger.Fatal("db-dir is required when not using in-memory log and stable store")
+		logger.Error("db-dir is required when not using in-memory log and stable store")
+		os.Exit(1)
 	}
 
 	cfg := parseConfig(*config)
@@ -101,11 +109,14 @@ func main() {
 	if !*inMem {
 		store, err := NewTukkiStore(*dbDir)
 		if err != nil {
-			logger.Fatalf("failed to create tukki store: %v", err)
+			logger.Error("failed to create tukki store", "err", err)
+			os.Exit(1)
 		}
+		defer store.Close()
+
 		logStore = store
 		stableStore = store
-		logger.Printf("using tukki store at %s", *dbDir)
+		logger.Info("using tukki store", "db-dir", *dbDir)
 	}
 	lauttaNode := lautta.NewNode(cfg, comms, fsm, logStore, stableStore)
 	lauttaNode.Start()
@@ -115,10 +126,18 @@ func main() {
 
 	ls, err := net.Listen("tcp", cfg.Address)
 	if err != nil {
-		logger.Fatalf("failed to listen: %v", err)
+		logger.Error("failed to listen", "err", err)
+		os.Exit(1)
 	}
 
 	grpcServer := grpc.NewServer()
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		grpcServer.GracefulStop()
+	}()
+
 	raftv1.RegisterRaftServiceServer(grpcServer, raftServer)
 	kvv1.RegisterKVServiceServer(grpcServer, raftServer)
 	grpcServer.Serve(ls)
