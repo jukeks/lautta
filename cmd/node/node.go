@@ -13,6 +13,7 @@ import (
 	kvv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/kv/v1"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
 	lautta "github.com/jukeks/lautta/raft"
+	lauttaGrpc "github.com/jukeks/lautta/raft/transports/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -66,7 +67,6 @@ func initPeerClients(peers []lautta.Peer) map[lautta.NodeID]raftv1.RaftServiceCl
 	peerClients := make(map[lautta.NodeID]raftv1.RaftServiceClient)
 	logger.Info("peers", "peers", peers)
 	for _, peer := range peers {
-
 		c, err := grpc.NewClient(peer.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			logger.Error("failed to connect to peer", "peer", peer.ID, "err", err)
@@ -79,11 +79,11 @@ func initPeerClients(peers []lautta.Peer) map[lautta.NodeID]raftv1.RaftServiceCl
 	return peerClients
 }
 
-type fsm struct {
+type dummyFSM struct {
 	logs []lautta.LogEntry
 }
 
-func (f *fsm) Apply(log lautta.LogEntry) error {
+func (f *dummyFSM) Apply(log lautta.LogEntry) error {
 	f.logs = append(f.logs, log)
 	return nil
 }
@@ -98,9 +98,9 @@ func main() {
 
 	cfg := parseConfig(*config)
 	peers := initPeerClients(cfg.Peers)
-	client := NewRaftClient(peers)
+	client := lauttaGrpc.NewRaftClient(peers)
 
-	fsm := &fsm{}
+	fsm := &dummyFSM{}
 	logStore := lautta.NewInMemLogStore()
 	stableStore := lautta.NewInMemStableStore()
 	if !*inMem {
@@ -115,11 +115,13 @@ func main() {
 		stableStore = store
 		logger.Info("using tukki store", "db-dir", *dbDir)
 	}
+
 	lauttaNode := lautta.NewNode(cfg, client, fsm, logStore, stableStore)
 	lauttaNode.Start()
 	defer lauttaNode.Stop()
 
-	raftServer := NewRaftServer(lauttaNode)
+	kvServer := NewKVServer(lauttaNode)
+	raftServer := lauttaGrpc.NewRaftServer(lauttaNode)
 
 	ls, err := net.Listen("tcp", cfg.Address)
 	if err != nil {
@@ -136,6 +138,6 @@ func main() {
 	}()
 
 	raftv1.RegisterRaftServiceServer(grpcServer, raftServer)
-	kvv1.RegisterKVServiceServer(grpcServer, raftServer)
+	kvv1.RegisterKVServiceServer(grpcServer, kvServer)
 	grpcServer.Serve(ls)
 }
