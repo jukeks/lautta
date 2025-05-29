@@ -314,8 +314,7 @@ func (n *Node) handleVoteResponse(resp RequestVoteResponse) {
 }
 
 func (n *Node) handleElectionResults() {
-	nNodes := len(n.config.Peers) + 1
-	if n.votes >= (nNodes/2)+1 {
+	if n.votes >= n.getMajorityCount() {
 		n.logger.Info("won election")
 		n.state = Leader
 

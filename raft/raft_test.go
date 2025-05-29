@@ -151,22 +151,13 @@ func TestElection(t *testing.T) {
 	}
 }
 
-func propose(t *testing.T, leader comms, payload []byte) error {
-	ret := make(chan ProposeResponse, 1)
-	leader.ProposeRequestsIn <- ProposeRequest{
+func propose(t *testing.T, leader *Node, payload []byte) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	_, err := leader.Propose(ctx, ProposeRequest{
 		Payload: payload,
-		ret:     ret,
-	}
-
-	select {
-	case resp := <-ret:
-		if resp.Err != nil {
-			return resp.Err
-		}
-	case <-time.After(1 * time.Second):
-		t.Fatalf("timed out waiting for propose response")
-	}
-	return nil
+	})
+	defer cancel()
+	return err
 }
 
 type NodeFSM struct {
@@ -215,7 +206,7 @@ func TestPropose(t *testing.T) {
 	}
 
 	payload := []byte("test payload")
-	if err := propose(t, leader.Node.comms, payload); err != nil {
+	if err := propose(t, leader.Node, payload); err != nil {
 		t.Fatalf("failed to propose: %v", err)
 	}
 
@@ -242,16 +233,22 @@ func TestReplay(t *testing.T) {
 	}
 	follower.Node.Stop()
 
-	payload := []byte("1")
-	if err := propose(t, leader.Node.comms, payload); err != nil {
+	payload1 := []byte("1")
+	if err := propose(t, leader.Node, payload1); err != nil {
 		t.Fatalf("failed to propose: %v", err)
 	}
+	ensurePropagation(t, []NodeID{follower.Node.config.ID}, cluster, payload1)
 
-	ensurePropagation(t, []NodeID{follower.Node.config.ID}, cluster, payload)
+	payload2 := []byte("2")
+	if err := propose(t, leader.Node, payload2); err != nil {
+		t.Fatalf("failed to propose: %v", err)
+	}
+	ensurePropagation(t, []NodeID{follower.Node.config.ID}, cluster, payload2)
 
 	follower.Node.Start()
 	// follower should catch up with the leader
-	ensurePropagation(t, nil, cluster, payload)
+	ensurePropagation(t, nil, cluster, payload1)
+	ensurePropagation(t, nil, cluster, payload2)
 }
 
 func TestElectionWithMajority(t *testing.T) {
