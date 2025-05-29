@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	kvv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/kv/v1"
+	kvv1 "github.com/jukeks/lautta/proto/gen/example/rpc/kv/v1"
 	raftv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/raft/v1"
 	lautta "github.com/jukeks/lautta/raft"
 	lauttaGrpc "github.com/jukeks/lautta/raft/transports/grpc"

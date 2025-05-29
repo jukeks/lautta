@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        (unknown)
-// source: lautta/rpc/kv/v1/kv.proto
+// source: example/rpc/kv/v1/kv.proto
 
 package kvv1
 
@@ -31,7 +31,7 @@ type WriteRequest struct {
 
 func (x *WriteRequest) Reset() {
 	*x = WriteRequest{}
-	mi := &file_lautta_rpc_kv_v1_kv_proto_msgTypes[0]
+	mi := &file_example_rpc_kv_v1_kv_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *WriteRequest) String() string {
 func (*WriteRequest) ProtoMessage() {}
 
 func (x *WriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_lautta_rpc_kv_v1_kv_proto_msgTypes[0]
+	mi := &file_example_rpc_kv_v1_kv_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *WriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteRequest.ProtoReflect.Descriptor instead.
 func (*WriteRequest) Descriptor() ([]byte, []int) {
-	return file_lautta_rpc_kv_v1_kv_proto_rawDescGZIP(), []int{0}
+	return file_example_rpc_kv_v1_kv_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *WriteRequest) GetKey() string {
@@ -81,7 +81,7 @@ type WriteResponse struct {
 
 func (x *WriteResponse) Reset() {
 	*x = WriteResponse{}
-	mi := &file_lautta_rpc_kv_v1_kv_proto_msgTypes[1]
+	mi := &file_example_rpc_kv_v1_kv_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -93,7 +93,7 @@ func (x *WriteResponse) String() string {
 func (*WriteResponse) ProtoMessage() {}
 
 func (x *WriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_lautta_rpc_kv_v1_kv_proto_msgTypes[1]
+	mi := &file_example_rpc_kv_v1_kv_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -106,42 +106,42 @@ func (x *WriteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteResponse.ProtoReflect.Descriptor instead.
 func (*WriteResponse) Descriptor() ([]byte, []int) {
-	return file_lautta_rpc_kv_v1_kv_proto_rawDescGZIP(), []int{1}
+	return file_example_rpc_kv_v1_kv_proto_rawDescGZIP(), []int{1}
 }
 
-var File_lautta_rpc_kv_v1_kv_proto protoreflect.FileDescriptor
+var File_example_rpc_kv_v1_kv_proto protoreflect.FileDescriptor
 
-const file_lautta_rpc_kv_v1_kv_proto_rawDesc = "" +
+const file_example_rpc_kv_v1_kv_proto_rawDesc = "" +
 	"\n" +
-	"\x19lautta/rpc/kv/v1/kv.proto\x12\x10lautta.rpc.kv.v1\"6\n" +
+	"\x1aexample/rpc/kv/v1/kv.proto\x12\x11example.rpc.kv.v1\"6\n" +
 	"\fWriteRequest\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\"\x0f\n" +
-	"\rWriteResponse2U\n" +
-	"\tKVService\x12H\n" +
-	"\x05Write\x12\x1e.lautta.rpc.kv.v1.WriteRequest\x1a\x1f.lautta.rpc.kv.v1.WriteResponseB\xb8\x01\n" +
-	"\x14com.lautta.rpc.kv.v1B\aKvProtoP\x01Z4github.com/jukeks/lautta/proto/lautta/rpc/kv/v1;kvv1\xa2\x02\x03LRK\xaa\x02\x10Lautta.Rpc.Kv.V1\xca\x02\x10Lautta\\Rpc\\Kv\\V1\xe2\x02\x1cLautta\\Rpc\\Kv\\V1\\GPBMetadata\xea\x02\x13Lautta::Rpc::Kv::V1b\x06proto3"
+	"\rWriteResponse2W\n" +
+	"\tKVService\x12J\n" +
+	"\x05Write\x12\x1f.example.rpc.kv.v1.WriteRequest\x1a .example.rpc.kv.v1.WriteResponseB\xbe\x01\n" +
+	"\x15com.example.rpc.kv.v1B\aKvProtoP\x01Z5github.com/jukeks/lautta/proto/example/rpc/kv/v1;kvv1\xa2\x02\x03ERK\xaa\x02\x11Example.Rpc.Kv.V1\xca\x02\x11Example\\Rpc\\Kv\\V1\xe2\x02\x1dExample\\Rpc\\Kv\\V1\\GPBMetadata\xea\x02\x14Example::Rpc::Kv::V1b\x06proto3"
 
 var (
-	file_lautta_rpc_kv_v1_kv_proto_rawDescOnce sync.Once
-	file_lautta_rpc_kv_v1_kv_proto_rawDescData []byte
+	file_example_rpc_kv_v1_kv_proto_rawDescOnce sync.Once
+	file_example_rpc_kv_v1_kv_proto_rawDescData []byte
 )
 
-func file_lautta_rpc_kv_v1_kv_proto_rawDescGZIP() []byte {
-	file_lautta_rpc_kv_v1_kv_proto_rawDescOnce.Do(func() {
-		file_lautta_rpc_kv_v1_kv_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_lautta_rpc_kv_v1_kv_proto_rawDesc), len(file_lautta_rpc_kv_v1_kv_proto_rawDesc)))
+func file_example_rpc_kv_v1_kv_proto_rawDescGZIP() []byte {
+	file_example_rpc_kv_v1_kv_proto_rawDescOnce.Do(func() {
+		file_example_rpc_kv_v1_kv_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_example_rpc_kv_v1_kv_proto_rawDesc), len(file_example_rpc_kv_v1_kv_proto_rawDesc)))
 	})
-	return file_lautta_rpc_kv_v1_kv_proto_rawDescData
+	return file_example_rpc_kv_v1_kv_proto_rawDescData
 }
 
-var file_lautta_rpc_kv_v1_kv_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_lautta_rpc_kv_v1_kv_proto_goTypes = []any{
-	(*WriteRequest)(nil),  // 0: lautta.rpc.kv.v1.WriteRequest
-	(*WriteResponse)(nil), // 1: lautta.rpc.kv.v1.WriteResponse
+var file_example_rpc_kv_v1_kv_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_example_rpc_kv_v1_kv_proto_goTypes = []any{
+	(*WriteRequest)(nil),  // 0: example.rpc.kv.v1.WriteRequest
+	(*WriteResponse)(nil), // 1: example.rpc.kv.v1.WriteResponse
 }
-var file_lautta_rpc_kv_v1_kv_proto_depIdxs = []int32{
-	0, // 0: lautta.rpc.kv.v1.KVService.Write:input_type -> lautta.rpc.kv.v1.WriteRequest
-	1, // 1: lautta.rpc.kv.v1.KVService.Write:output_type -> lautta.rpc.kv.v1.WriteResponse
+var file_example_rpc_kv_v1_kv_proto_depIdxs = []int32{
+	0, // 0: example.rpc.kv.v1.KVService.Write:input_type -> example.rpc.kv.v1.WriteRequest
+	1, // 1: example.rpc.kv.v1.KVService.Write:output_type -> example.rpc.kv.v1.WriteResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -149,26 +149,26 @@ var file_lautta_rpc_kv_v1_kv_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_lautta_rpc_kv_v1_kv_proto_init() }
-func file_lautta_rpc_kv_v1_kv_proto_init() {
-	if File_lautta_rpc_kv_v1_kv_proto != nil {
+func init() { file_example_rpc_kv_v1_kv_proto_init() }
+func file_example_rpc_kv_v1_kv_proto_init() {
+	if File_example_rpc_kv_v1_kv_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_lautta_rpc_kv_v1_kv_proto_rawDesc), len(file_lautta_rpc_kv_v1_kv_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_example_rpc_kv_v1_kv_proto_rawDesc), len(file_example_rpc_kv_v1_kv_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_lautta_rpc_kv_v1_kv_proto_goTypes,
-		DependencyIndexes: file_lautta_rpc_kv_v1_kv_proto_depIdxs,
-		MessageInfos:      file_lautta_rpc_kv_v1_kv_proto_msgTypes,
+		GoTypes:           file_example_rpc_kv_v1_kv_proto_goTypes,
+		DependencyIndexes: file_example_rpc_kv_v1_kv_proto_depIdxs,
+		MessageInfos:      file_example_rpc_kv_v1_kv_proto_msgTypes,
 	}.Build()
-	File_lautta_rpc_kv_v1_kv_proto = out.File
-	file_lautta_rpc_kv_v1_kv_proto_goTypes = nil
-	file_lautta_rpc_kv_v1_kv_proto_depIdxs = nil
+	File_example_rpc_kv_v1_kv_proto = out.File
+	file_example_rpc_kv_v1_kv_proto_goTypes = nil
+	file_example_rpc_kv_v1_kv_proto_depIdxs = nil
 }

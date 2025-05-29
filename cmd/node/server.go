@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 
-	kvv1 "github.com/jukeks/lautta/proto/gen/lautta/rpc/kv/v1"
+	kvv1 "github.com/jukeks/lautta/proto/gen/example/rpc/kv/v1"
 	lautta "github.com/jukeks/lautta/raft"
 )
 
