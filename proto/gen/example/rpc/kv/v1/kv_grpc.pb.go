@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             (unknown)
-// source: lautta/rpc/kv/v1/kv.proto
+// source: example/rpc/kv/v1/kv.proto
 
 package kvv1
 
@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	KVService_Write_FullMethodName = "/lautta.rpc.kv.v1.KVService/Write"
+	KVService_Write_FullMethodName = "/example.rpc.kv.v1.KVService/Write"
 )
 
 // KVServiceClient is the client API for KVService service.
@@ -96,7 +96,7 @@ func _KVService_Write_Handler(srv interface{}, ctx context.Context, dec func(int
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var KVService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "lautta.rpc.kv.v1.KVService",
+	ServiceName: "example.rpc.kv.v1.KVService",
 	HandlerType: (*KVServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -105,5 +105,5 @@ var KVService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "lautta/rpc/kv/v1/kv.proto",
+	Metadata: "example/rpc/kv/v1/kv.proto",
 }

@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package lautta.rpc.kv.v1;
+package example.rpc.kv.v1;
 
-option go_package = "github.com/jukeks/lautta/rpc/kv";
+option go_package = "github.com/jukeks/lautta/example/rpc/kv";
 
 
 
