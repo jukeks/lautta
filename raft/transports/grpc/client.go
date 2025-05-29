@@ -1,4 +1,4 @@
-package main
+package grpc
 
 import (
 	"context"
@@ -8,20 +8,20 @@ import (
 	lautta "github.com/jukeks/lautta/raft"
 )
 
-type RaftGrpcClient struct {
+type RaftClient struct {
 	peers  map[lautta.NodeID]raftv1.RaftServiceClient
 	logger *slog.Logger
 }
 
 func NewRaftClient(peers map[lautta.NodeID]raftv1.RaftServiceClient) lautta.RaftClient {
-	return &RaftGrpcClient{
+	return &RaftClient{
 		peers: peers,
 		logger: slog.New(slog.Default().Handler()).
 			With("prefix", "raft-client"),
 	}
 }
 
-func (c *RaftGrpcClient) AppendEntries(ctx context.Context, node lautta.NodeID, req lautta.AppendEntriesRequest) (lautta.AppendEntriesResponse, error) {
+func (c *RaftClient) AppendEntries(ctx context.Context, node lautta.NodeID, req lautta.AppendEntriesRequest) (lautta.AppendEntriesResponse, error) {
 	peer := c.peers[node]
 
 	entries := make([]*raftv1.Entry, len(req.Entries))
@@ -52,7 +52,7 @@ func (c *RaftGrpcClient) AppendEntries(ctx context.Context, node lautta.NodeID, 
 
 }
 
-func (c *RaftGrpcClient) VoteRequest(ctx context.Context, node lautta.NodeID, req lautta.RequestVoteRequest) (lautta.RequestVoteResponse, error) {
+func (c *RaftClient) VoteRequest(ctx context.Context, node lautta.NodeID, req lautta.RequestVoteRequest) (lautta.RequestVoteResponse, error) {
 	peer := c.peers[node]
 
 	resp, err := peer.RequestVote(context.Background(), &raftv1.RequestVoteRequest{
