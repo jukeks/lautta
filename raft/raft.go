@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -61,6 +62,7 @@ const (
 )
 
 type Node struct {
+	mu     sync.Mutex
 	config Config
 
 	// persisted
@@ -133,6 +135,12 @@ func (n *Node) Stop() {
 
 func (n *Node) Start() {
 	go n.Run()
+}
+
+func (n *Node) GetState() NodeState {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return n.state
 }
 
 func (n *Node) Run() {

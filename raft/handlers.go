@@ -14,6 +14,9 @@ func (n *Node) Fatal(s string, args ...any) {
 }
 
 func (n *Node) handleTick() {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	if n.state == Follower && time.Since(n.lastHeartbeat) > HeartbeatTimeout {
 		n.logger.Info("starting elections")
 		n.startElection()
@@ -56,6 +59,9 @@ func (n *Node) handleNewerTerm(newTerm TermID) {
 }
 
 func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.logger.Debug("append entries", "req", req, "entries", len(req.Entries))
 
 	if req.Term > n.currentTerm {
@@ -201,6 +207,9 @@ func (n *Node) checkCommitProgress() {
 }
 
 func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.logger.Debug("append entries resp", "resp", resp)
 	req := resp.request
 	peer := req.targetNode
@@ -249,6 +258,9 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 }
 
 func (n *Node) handleVoteRequest(req RequestVoteRequest) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	if req.Term > n.currentTerm {
 		n.handleNewerTerm(req.Term)
 	}
@@ -285,6 +297,9 @@ func (n *Node) handleVoteRequest(req RequestVoteRequest) {
 }
 
 func (n *Node) handleVoteResponse(resp RequestVoteResponse) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.logger.Info("vote response", "resp", resp)
 	if n.state != Candidate {
 		n.logger.Info("got vote response but not a candidate, ignoring")
@@ -389,6 +404,9 @@ func (n *Node) sendHeartbeats() {
 }
 
 func (n *Node) handleProposeRequest(req ProposeRequest) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.logger.Debug("got write request", "req", req, "payload", req.Payload)
 	if n.state != Leader {
 		req.ret <- ProposeResponse{
