@@ -68,29 +68,12 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 		n.handleNewerTerm(req.Term)
 	}
 
-	olderTerm := req.Term < n.currentTerm
-	for _, newEntry := range req.Entries {
-		existingEntry, err := n.logStore.Get(newEntry.Index)
-		if err != nil {
-			n.Fatal("failed to read log", "err", err)
-		}
-		if existingEntry.Index != 0 {
-			if existingEntry.Term != newEntry.Term {
-				n.logStore.DeleteFrom(newEntry.Index)
-				n.logStore.Add(newEntry)
-				continue
-			}
-		} else {
-			n.logStore.Add(newEntry)
-		}
-	}
-
-	prevLog, err := n.logStore.Get(req.PrevLogIndex)
+	localPrevLog, err := n.logStore.Get(req.PrevLogIndex)
 	if err != nil {
 		n.Fatal("failed to read log", "err", err)
 	}
-
-	prevLogMismatch := prevLog.Index == 0 || prevLog.Term != req.PrevLogTerm
+	localPrevLogNotFound := localPrevLog.Index == 0 && req.PrevLogIndex != 0
+	prevLogMismatch := localPrevLogNotFound || localPrevLog.Term != req.PrevLogTerm
 	n.logger.Debug("result", "prevLogMismatch", prevLogMismatch,
 		"req.PrevLogIndex", req.PrevLogIndex, "req.PrevLogTerm", req.PrevLogTerm)
 
@@ -99,22 +82,43 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 		prevLogMismatch = false
 	}
 
-	if req.LeaderCommit > n.commitIndex {
-		lastLog, err := n.logStore.GetLastLog()
-		if err != nil {
-			n.Fatal("failed to read last log", "err", err)
+	olderTerm := req.Term < n.currentTerm
+	success := !olderTerm && !prevLogMismatch
+
+	if success {
+		for _, newEntry := range req.Entries {
+			existingEntry, err := n.logStore.Get(newEntry.Index)
+			if err != nil {
+				n.Fatal("failed to read log", "err", err)
+			}
+			if existingEntry.Index != 0 {
+				if existingEntry.Term != newEntry.Term {
+					n.logStore.DeleteFrom(newEntry.Index)
+					n.logStore.Add(newEntry)
+					continue
+				}
+			} else {
+				n.logStore.Add(newEntry)
+			}
 		}
 
-		prevCommit := n.commitIndex
-		n.commitIndex = min(lastLog.Index, req.LeaderCommit)
-		logs, err := n.logStore.GetBetween(prevCommit+1, n.commitIndex)
-		if err != nil {
-			n.Fatal("failed to read log", "err", err)
-		}
+		if req.LeaderCommit > n.commitIndex {
+			lastLog, err := n.logStore.GetLastLog()
+			if err != nil {
+				n.Fatal("failed to read last log", "err", err)
+			}
 
-		for _, log := range logs {
-			if err := n.fsm.Apply(log); err != nil {
-				n.Fatal("failed to apply log", "err", err)
+			prevCommit := n.commitIndex
+			n.commitIndex = min(lastLog.Index, req.LeaderCommit)
+			logs, err := n.logStore.GetBetween(prevCommit+1, n.commitIndex)
+			if err != nil {
+				n.Fatal("failed to read log", "err", err)
+			}
+
+			for _, log := range logs {
+				if err := n.fsm.Apply(log); err != nil {
+					n.Fatal("failed to apply log", "err", err)
+				}
 			}
 		}
 	}
@@ -125,7 +129,7 @@ func (n *Node) handleAppendEntriesRequest(req AppendEntriesRequest) {
 
 	req.ret <- AppendEntriesResponse{
 		Term:    n.currentTerm,
-		Success: !olderTerm && !prevLogMismatch,
+		Success: success,
 	}
 	n.lastHeartbeat = time.Now()
 }
@@ -246,11 +250,22 @@ func (n *Node) handleAppendEntriesResponse(resp AppendEntriesResponse) {
 		n.Fatal("failed to read log", "err", err)
 	}
 
+	if len(entries) == 0 {
+		n.logger.Warn("no earlier logs to replicate, why the mismatch?")
+		return
+	}
+
+	prevLogIndex := entries[0].Index - 1
+	prevLog, err := n.logStore.Get(prevLogIndex)
+	if err != nil {
+		n.Fatal("failed to read log", "err", err)
+	}
+
 	n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
 		Term:         n.currentTerm,
 		LeaderID:     n.config.ID,
-		PrevLogIndex: lastLog.Index,
-		PrevLogTerm:  lastLog.Term,
+		PrevLogIndex: prevLog.Index,
+		PrevLogTerm:  prevLog.Term,
 		LeaderCommit: n.commitIndex,
 		targetNode:   peer,
 		Entries:      entries,
@@ -431,26 +446,17 @@ func (n *Node) handleProposeRequest(req ProposeRequest) {
 	}
 	n.ongoingOperations[entry.Index] = req
 
-	n.replicate()
-}
-
-func (n *Node) replicate() {
-	lastLog, err := n.logStore.GetLastLog()
+	prevLog, err := n.logStore.Get(entry.Index - 1)
 	if err != nil {
 		n.Fatal("failed to read log", "err", err)
 	}
 
-	for nodeID, nextIndex := range n.leader.NextIndex {
-		entry, err := n.logStore.Get(nextIndex)
-		if err != nil {
-			n.Fatal("failed to read log", "err", err)
-		}
-
+	for nodeID, _ := range n.leader.NextIndex {
 		n.comms.AppendEntriesRequestsOut <- AppendEntriesRequest{
 			Term:         n.currentTerm,
 			LeaderID:     n.config.ID,
-			PrevLogIndex: lastLog.Index,
-			PrevLogTerm:  lastLog.Term,
+			PrevLogIndex: prevLog.Index,
+			PrevLogTerm:  prevLog.Term,
 			LeaderCommit: n.commitIndex,
 			targetNode:   nodeID,
 			Entries:      []LogEntry{entry},
