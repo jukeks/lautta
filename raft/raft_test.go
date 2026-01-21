@@ -226,7 +226,7 @@ func TestPropose(t *testing.T) {
 
 	for _, member := range cluster.Members {
 		if member.Node.commitIndex != 1 {
-			t.Errorf("commit index not progressed")
+			t.Errorf("commit index not progressed: node %d has commit index %d", member.Node.config.ID, member.Node.commitIndex)
 		}
 	}
 }
