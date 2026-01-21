@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 )
@@ -28,12 +29,23 @@ func (c *testClient) VoteRequest(ctx context.Context, node NodeID, req RequestVo
 }
 
 type fsm struct {
+	mu   sync.Mutex
 	logs []LogEntry
 }
 
 func (f *fsm) Apply(log LogEntry) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	f.logs = append(f.logs, log)
 	return nil
+}
+
+func (f *fsm) GetLogs() []LogEntry {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return append([]LogEntry(nil), f.logs...)
 }
 
 func getCluster(started bool) (Cluster, func()) {
@@ -103,7 +115,7 @@ func getLeader(cluster Cluster) *NodeFSM {
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		for _, member := range cluster.Members {
-			if member.Node.state == Leader {
+			if member.Node.GetState() == Leader {
 				return member
 			}
 		}
@@ -116,7 +128,7 @@ func getLeader(cluster Cluster) *NodeFSM {
 
 func getFollower(cluster Cluster) *NodeFSM {
 	for _, member := range cluster.Members {
-		if member.Node.state == Follower {
+		if member.Node.GetState() == Follower {
 			return member
 		}
 	}
@@ -134,7 +146,7 @@ func TestElection(t *testing.T) {
 
 		leaders = 0
 		for _, member := range cluster.Members {
-			if member.Node.state == Leader {
+			if member.Node.GetState() == Leader {
 				leaders++
 			}
 		}
@@ -178,7 +190,7 @@ func ensurePropagation(t *testing.T, skip []NodeID, cluster Cluster, payload []b
 				continue
 			}
 
-			for _, log := range member.FSM.logs {
+			for _, log := range member.FSM.GetLogs() {
 				if bytes.Equal(log.Payload, payload) {
 					found++
 					break

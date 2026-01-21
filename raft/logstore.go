@@ -45,7 +45,7 @@ func (l *InMemLog) Add(entry LogEntry) error {
 
 func (l *InMemLog) GetFrom(idx LogIndex) ([]LogEntry, error) {
 	slice := make([]LogEntry, 0)
-	appending := true
+	appending := false
 	for _, entry := range l.entries {
 		if entry.Index == idx {
 			appending = true
@@ -62,7 +62,7 @@ func (l *InMemLog) GetFrom(idx LogIndex) ([]LogEntry, error) {
 
 func (l *InMemLog) GetBetween(min, max LogIndex) ([]LogEntry, error) {
 	slice := make([]LogEntry, 0)
-	appending := true
+	appending := false
 	for _, entry := range l.entries {
 		if entry.Index == min {
 			appending = true
